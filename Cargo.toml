@@ -7,3 +7,6 @@ authors = ["Phaiax <phaiax-saltpack@invisibletower.de>"]
 serde = "*"
 serde_json = "*"
 serde_macros = "*"
+geometry = { path = "crates/ramp" }
+ramp = "*"
+byteorder = "0.4"
