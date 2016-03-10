@@ -1,0 +1,9 @@
+[package]
+name = "saltpack"
+version = "0.1.0"
+authors = ["Phaiax <phaiax-saltpack@invisibletower.de>"]
+
+[dependencies]
+serde = "*"
+serde_json = "*"
+serde_macros = "*"
