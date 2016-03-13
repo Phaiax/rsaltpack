@@ -1,6 +1,7 @@
 
 
 pub use ::SaltpackMessageType;
+pub use ::PublicKey;
 use std::io::Read;
 use rmp::decode;
 use rmp::value::{Value, Integer};
@@ -157,7 +158,7 @@ pub fn read_and_assert_header_v_1_0<R>(mut raw: &mut R) -> Result<SaltpackHeader
 }
 
 #[allow(dead_code)]
-fn print_debug_as_str(reader : &[u8]) {
+pub fn print_debug_as_str(reader : &[u8]) {
     for b in reader.iter() {
         let c : u8 = *b;
         let i : u32 = c as u32;
