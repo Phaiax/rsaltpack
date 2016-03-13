@@ -9,9 +9,18 @@ extern crate ramp;
 extern crate byteorder;
 extern crate alloc;
 extern crate regex;
+extern crate rmp;
 
-//mod headerpacket;
-mod armor;
+pub mod headerpacket;
+pub mod armor;
+
+#[derive(Debug, PartialEq)]
+pub enum SaltpackMessageType {
+    ENCRYPTEDMESSAGE,
+    SIGNEDMESSAGE,
+    DETACHEDSIGNATURE
+}
+
 
 // step 1: iter through input string.as_bytes() and copy u8 to extra array if not whitespace
 //         thereby convert from letter to associated number
@@ -21,8 +30,4 @@ mod armor;
 #[cfg(test)]
 mod test {
 
-
-    #[test]
-    fn it_works() {
-    }
 }

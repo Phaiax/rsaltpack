@@ -1,95 +1,191 @@
 
 
+pub use ::SaltpackMessageType;
+use std::io::Read;
+use rmp::decode;
+use rmp::value::{Value, Integer};
+use std::char::from_u32;
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Recipient (
-    Option<String>,
-    String
-);
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
-pub struct Header (
-    String,
-    Vec<i32>,
-    i32,
-    String,
-    String,
-    Vec<Recipient>
-);
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Header2 {
-    identifier: String,
-    version: Vec<i32>,
-    kind: i32,
-    s1: String,
-    s2: String,
-    recipients: Vec<Recipient>
+#[derive(Debug)]
+pub struct Recipient {
+    recipient_pub: Vec<u8>,
+    payloadkey_cryptobox : Vec<u8>
 }
 
-#[cfg(test)]
-mod test {
-    use super::*;
-    use serde_json;
+#[derive(Debug)]
+pub struct SaltpackHeader10 {
+   mode : SaltpackMessageType,
+   eph_pub : Vec<u8>,
+   sender_secretbox : Vec<u8>,
+   recipients : Vec<Recipient>,
+}
 
-    static TEST_HEADER_JSON : &'static str = "[\"saltpack\",
-      [1, 0],
-      0,
-      \"895e690ba0fd8d15f51adf59e161af3f67518fa6e2eaadd8a666b8a1629c2349\",
-      \"b49c4c8791cd97f2c244c637df90e343eda4aaa56e37d975d2b7c81d36f44850d77706a51e2ccd57e7f7606565db4b1e\",
-      [
-        [
-          \"wr\",
-          \"c16b6126d155d7a39db20825d6c43f856689d0f8665a8da803270e0106ed91a90ef599961492bd6e49c69b43adc22724\"
-        ]
-      ]
-    ]";
-    static TEST_HEADER_SIMPLE : &'static str = "[\"saltpack\",[1,0],0,\"ad\",\"35\",[[\"wer\",\"werwt\"]]]";
-    static TEST_HEADER_MOREFIELDS : &'static str = "[\"saltpack\",[1,0],0,\"ad\",\"35\",[[\"wer\",\"werwt\"]], 234]";
-    static TEST_HEADER_AS_DICT : &'static str = "{\"identifier\":\"saltpack\",\"version\":[1,0],\"kind\":0,\"s1\":\"ad\",\"s2\":\"35\",\"recipients\":[[\"wer\",\"werwt\"]]}";
-    static TEST_HEADER_AS_DICT_MOREFIELDS : &'static str = "{\"identifier\":\"saltpack\",\"version\":[1,0],\"kind\":0,\"s1\":\"ad\",\"s2\":\"35\",\"recipients\":[[\"wer\",\"werwt\"]], \"erg\" : 1243}";
-    #[test]
-    fn test() {
-        assert_eq!(3, 3);
-    }
+#[derive(Debug)]
+pub enum ParseError{
+    WrongSaltpackVersion(String, u64, u64),
+    UnknownMode(String, u64),
+    NotWellFormed(String),
+}
+
+pub fn read_and_assert_header_v_1_0<R>(mut raw: &mut R) -> Result<SaltpackHeader10, ParseError>
+  where R: Read
+{
+        let nested_binary : Vec<u8> = match decode::read_value(&mut raw) {
+            Ok(Value::Binary(bin)) => bin,
+            Err(s) => return Err(ParseError::NotWellFormed(format!("Not a messagepack stream. {}", s))),
+            _ => return Err(ParseError::NotWellFormed("No nested messagepack found.".to_string()))
+        };
+
+        let mut reader : &[u8] = nested_binary.as_slice();
+
+        let arr : Vec<Value> = match decode::read_value(&mut reader) {
+            Ok(Value::Array(arr)) => arr,
+            Err(s) => return Err(ParseError::NotWellFormed(format!("Nested binary is not a messagepack stream. {}", s))),
+            _ => return Err(ParseError::NotWellFormed("No nested header messagepack is not of type array.".to_string()))
+        };
+
+        if arr.len() < 2 {
+            return Err(ParseError::NotWellFormed(format!("Header messagepack array to short. ({}<2)", arr.len())));
+        }
+
+        let saltpack_str = match arr.get(0).unwrap().clone() {
+            Value::String(e) => e,
+            _ => return Err(ParseError::NotWellFormed("First header array element is not of type string.".to_string()))
+        };
+
+        if saltpack_str != "saltpack" {
+            return Err(ParseError::NotWellFormed(format!("Header magic string should be 'saltpack' but is {}", saltpack_str)));
+        }
+
+        let version_arr = match arr.get(1).unwrap().clone() {
+            Value::Array(arr) => arr,
+            _ =>  return Err(ParseError::NotWellFormed(format!("Header version field is not of type array")))
+        };
+
+        if version_arr.len() != 2 {
+            return Err(ParseError::NotWellFormed("Header version field is not of type array[2]".to_string()));
+        }
+
+        let version_major = match version_arr.get(0).unwrap().clone() {
+            Value::Integer(Integer::U64(i)) => i,
+            _ =>  return Err(ParseError::NotWellFormed(format!("Header version field[0] is not of type integer"))),
+        };
+
+        let version_minor = match version_arr.get(1).unwrap().clone() {
+            Value::Integer(Integer::U64(i)) => i,
+            _ =>  return Err(ParseError::NotWellFormed(format!("Header version field[1] is not of type integer"))),
+        };
+
+        if version_major != 1 || version_minor != 0 {
+            return Err(ParseError::WrongSaltpackVersion(format!("Saltpack version {}.{} found. This is the decoder for Version 1.0", version_major, version_minor), version_major, version_minor));
+        }
+
+        if arr.len() < 5 {
+            return Err(ParseError::NotWellFormed(format!("Header messagepack array to short. ({}<5)", arr.len())));
+        }
 
 
-    #[test]
-    fn test_serde_json() {
+        let mode = match arr.get(2).unwrap().clone() {
+            Value::Integer(Integer::U64(i)) if i == 0 => SaltpackMessageType::ENCRYPTEDMESSAGE,
+            Value::Integer(Integer::U64(i)) if i == 1 => SaltpackMessageType::SIGNEDMESSAGE,
+            Value::Integer(Integer::U64(i)) if i == 2 => SaltpackMessageType::DETACHEDSIGNATURE,
+            Value::Integer(Integer::U64(i)) => return Err(ParseError::UnknownMode(format!("Unknown saltpack mode. {}", i), i)),
+            _ =>  return Err(ParseError::NotWellFormed(format!("Header mode field[2] is not of type integer")))
+        };
 
-        let point : Header = Header ("saltpack".to_string(),
-                              vec![1, 0],
-                              0,
-                              "ad".to_string(),
-                              "35".to_string(),
-                              vec![ Recipient(Some("wer".to_string()), "werwt".to_string()) ]);
-        let serialized = serde_json::to_string(&point).unwrap();
+        let eph_pub = match arr.get(3).unwrap().clone() {
+            Value::Binary(bin) => bin,
+            _ =>  return Err(ParseError::NotWellFormed(format!("Header ephemeral key field[3] is not of type binary"))),
+        };
 
-        println!("{}", serialized);
+        if eph_pub.len() != 32 {
+            return Err(ParseError::NotWellFormed(format!("Header ephemeral key has not length 32 but {}", eph_pub.len())));
+        }
 
-
-        let deserialized: Header = serde_json::from_str(&serialized).unwrap();
-        println!("{:?}", deserialized);
-
-        let deserialized : Result<Header, serde_json::error::Error> = serde_json::from_str(&TEST_HEADER_JSON);
-        let deserialized : Result<Header, serde_json::error::Error> = serde_json::from_str(&TEST_HEADER_SIMPLE);
-        println!("SIMPLE Header {:?}", deserialized);
-        let deserialized : Result<Header2, serde_json::error::Error> = serde_json::from_str(&TEST_HEADER_SIMPLE);
-        println!("SIMPLE Header2 {:?}", deserialized);
-        let serialized = serde_json::to_string(&deserialized.unwrap()).unwrap();
-        println!("{}", serialized);
-        let deserialized : Header2 = serde_json::from_str(&TEST_HEADER_AS_DICT).unwrap();
-        let deserialized : Result<Header2, serde_json::error::Error> = serde_json::from_str(&TEST_HEADER_AS_DICT_MOREFIELDS);
-        println!("SIMPLE Header2 morefields {:?}", deserialized);
-
-        match deserialized {
-            Err(i) => { println!("{:?}", i);},
-            Ok(_) => {}
+        let sender_secretbox = match arr.get(4).unwrap().clone() {
+            Value::Binary(bin) => bin,
+            _ =>  return Err(ParseError::NotWellFormed(format!("Header sender secretbox field[4] is not of type binary"))),
         };
 
 
+        let mut result = SaltpackHeader10 {
+            mode : mode,
+            eph_pub : eph_pub,
+            sender_secretbox : sender_secretbox,
+            recipients : Vec::new(),
+        };
 
-       // assert_eq!(3, 1);
+        let has_recipients = arr.len() >= 6;
+
+        if has_recipients {
+            let recipients_arr = match arr.get(5).unwrap().clone() {
+                Value::Array(arr) => arr,
+                _ =>  return Err(ParseError::NotWellFormed(format!("Header recipient field is not of type array")))
+            };
+
+            for recipient in recipients_arr.iter() {
+
+                let recipient = match recipient.clone() {
+                    Value::Array(arr) => arr,
+                    _ =>  return Err(ParseError::NotWellFormed(format!("Header recipient entry is not of type array")))
+                };
+
+                if recipient.len() < 2 {
+                    return Err(ParseError::NotWellFormed(format!("Header recipient entry has less then two fields: {}", arr.len())));
+                }
+
+                let recipient_pub_key = match recipient.get(0).unwrap().clone() {
+                    Value::Binary(bin) => bin,
+                    _ =>  return Err(ParseError::NotWellFormed(format!("Header recipient public key is not of type binary."))),
+                };
+
+                let payloadkey_cryptobox = match recipient.get(1).unwrap().clone() {
+                    Value::Binary(bin) => bin,
+                    _ =>  return Err(ParseError::NotWellFormed(format!("Header payload crypto box is not of type binary."))),
+                };
+
+                let recipient = Recipient {
+                    recipient_pub : recipient_pub_key,
+                    payloadkey_cryptobox : payloadkey_cryptobox
+                };
+                result.recipients.push(recipient);
+            }
+
+        }
+
+        Ok(result)
+}
+
+#[allow(dead_code)]
+fn print_debug_as_str(reader : &[u8]) {
+    for b in reader.iter() {
+        let c : u8 = *b;
+        let i : u32 = c as u32;
+        let c = from_u32(i);
+        if let Some(c) = c {
+            print!("{}", c);
+        }
+    }
+    println!("" );
+}
+
+
+#[cfg(test)]
+mod test {
+
+    static ARMORED_2 : &'static str = "BEGIN KEYBASE SALTPACK ENCRYPTED MESSAGE. kiOUtMhcc4NXXRb XMxIdgQyljueFUr j9Glci9VK9gs0FD SAI1ChjLXBNvLG9 KzKYjJpeQYdhPeE 132M0VyYiPVRKkc xfxsSUuTNvDtLV8 XJEZlLNM9AEMoJ4 4cQ9dhRpULgINBK CMjxIe0olHF05oC BFiS4JEd9YfzKfB kppV8R4RZeEoU2E StUW1n6563Nynco OAZjT8O8dy3wspR KRIYp2lGwO4jhxN 7Pr1ROg89nrQbTs jIe5kKk0OcNk2nr nFwpZ2T5FflPK6A OAfEWB1ff1o0dG7 3ZSD1GzzH3LbCgj IUg0xnpclpHi37r sXoVzt731JucYGh ihnM9jHK5hhiCmx hnnZ3SyXuW443wU WxTFOzeTJ37kNsG ZNIWxfKIu5rcL8Q PwFd2Sn4Azpcdmy qzlJMvKphjTdkEC EVg0JwaSwwMbhDl OuytEL90Qlf8g9O S8S6qY4Ssw80J5V Avqz3CiiCuSUWzr ry6HdhLWWpguBQi a74pdDYBlzbjsXM lLLKaF5t46nnfB0 7APzXL7wfvRHZVF kJH1SP9WVxULDH2 gocmmy8E2XHfHri nVZU27A3EQ0d0EY IrXpllP8BkCbIc1 GuQGRaAsYH4keTR FuH0h4RoJ6J6mYh TXRceNTDqYAtzm0 Fuop8MaJedh8Pzs HtXcxYsJgPvwqsh H6R3It9Atnpjh1U u0o0uNY0lhcTB4g GHNse3LigrLbMvd oq6UkokAowoWwy2 mk4QdKuWAXrTTSH viB7AMcs5HC96mG 4pTjaXRNBT7Zrs6 fc1GCa4lMJPzSWC XM2pIvu70NCHXYB 8xW11pz1Yy3K2Cw Wz. END KEYBASE SALTPACK ENCRYPTED MESSAGE.";
+
+    use super::*;
+    use armor::dearmor;
+
+    #[test]
+    fn it_works() {
+        let raw_saltpacks = dearmor(&ARMORED_2, 1).unwrap();
+        let pack1 = raw_saltpacks.get(0).unwrap();
+        let mut reader : &[u8] = pack1.binary.as_slice();
+        let header = read_and_assert_header_v_1_0(&mut reader).unwrap();
+
+        assert_eq!(header.mode, SaltpackMessageType::ENCRYPTEDMESSAGE);
+        assert_eq!(header.recipients.len(), 3);
     }
 }

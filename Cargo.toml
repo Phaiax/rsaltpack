@@ -7,6 +7,7 @@ authors = ["Phaiax <phaiax-saltpack@invisibletower.de>"]
 serde = "*"
 serde_json = "*"
 serde_macros = "*"
+rmp = "*"
 ramp = { path = "crates/ramp" }
 byteorder = "0.4"
 regex="*"
