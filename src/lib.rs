@@ -14,26 +14,21 @@ extern crate sodiumoxide;
 extern crate rmp_serialize;
 extern crate rustc_serialize;
 
-pub mod headerpacket;
+pub mod compose;
+pub mod parse;
 pub mod armor;
 
-#[derive(Debug, PartialEq)]
-pub enum SaltpackMessageType {
-    ENCRYPTEDMESSAGE,
-    SIGNEDMESSAGE,
-    DETACHEDSIGNATURE
-}
 
 pub use sodiumoxide::crypto::box_::PublicKey;
 pub use sodiumoxide::crypto::box_::SecretKey;
 pub use sodiumoxide::crypto::box_::Nonce as CBNonce;
-pub struct KeyPair{ p : PublicKey, s : SecretKey }
 
 pub use sodiumoxide::crypto::secretbox::Key;
 pub use sodiumoxide::crypto::secretbox::Nonce as SBNonce;
 
 use sodiumoxide::crypto::box_;
-use sodiumoxide::crypto::secretbox;
+
+pub struct KeyPair{ p : PublicKey, s : SecretKey }
 
 impl KeyPair {
     pub fn gen() -> KeyPair {
@@ -42,10 +37,11 @@ impl KeyPair {
     }
 }
 
-impl Key {
-    pub fn gen() -> Key {
-        Key(secretbox::gen());
-    }
+#[derive(Debug, PartialEq)]
+pub enum SaltpackMessageType {
+    ENCRYPTEDMESSAGE,
+    SIGNEDMESSAGE,
+    DETACHEDSIGNATURE
 }
 
 impl SaltpackMessageType {
