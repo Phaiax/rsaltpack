@@ -1,16 +1,17 @@
 
-#![feature(custom_derive, plugin, alloc, unique)]
+#![feature(custom_derive, plugin, alloc)]
 #![plugin(serde_macros)]
+#![plugin(regex_macros)]
 
 extern crate serde;
 extern crate serde_json;
 extern crate ramp;
 extern crate byteorder;
 extern crate alloc;
-
+extern crate regex;
 
 //mod headerpacket;
-//mod base62;
+mod armor;
 
 // step 1: iter through input string.as_bytes() and copy u8 to extra array if not whitespace
 //         thereby convert from letter to associated number
@@ -19,9 +20,6 @@ extern crate alloc;
 
 #[cfg(test)]
 mod test {
-
-    #[test]
-    fn test_base62_to_
 
 
     #[test]

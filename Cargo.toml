@@ -9,3 +9,5 @@ serde_json = "*"
 serde_macros = "*"
 ramp = { path = "crates/ramp" }
 byteorder = "0.4"
+regex="*"
+regex_macros = "0.1"
