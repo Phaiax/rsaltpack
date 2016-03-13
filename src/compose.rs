@@ -20,6 +20,12 @@ pub struct Saltpack {
     payload_key : Key,
     macs : Vec<Vec<u8>>,
     header_messagepacked : Vec<u8>,
+    payload_packets : Option<PayloadPacket>,
+}
+
+pub struct PayloadPacket {
+    authenticators : Vec<Vec<u8>>,
+    secretbox_payload : Vec<u8>,
 }
 
 impl Saltpack {
@@ -109,7 +115,19 @@ impl Saltpack {
         Saltpack {
             payload_key : payload_key,
             macs : mac_keys,
-            header_messagepacked : header_outer_mp
+            header_messagepacked : header_outer_mp,
+            payload_packets : None
+        }
+    }
+
+    pub fn add_payload(&self, payload : Vec<u8>) {
+
+        let authenticators = Vec::<Vec<u8>>::new();
+        let secretbox_payload = Vec<u8>::new();
+
+        PayloadPacket {
+            authenticators : authenticators,
+            secretbox_payload : secretbox_payload,
         }
     }
 }
