@@ -1,7 +1,7 @@
 [package]
-name = "saltpack"
+name = "rsaltpack"
 version = "0.1.0"
-authors = ["Phaiax <phaiax-saltpack@invisibletower.de>"]
+authors = ["Phaiax <phaiax-rsaltpack@invisibletower.de>"]
 
 [dependencies]
 serde = "*"

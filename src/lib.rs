@@ -1,5 +1,5 @@
 
-#![feature(custom_derive, plugin, alloc)]
+#![feature(custom_derive, plugin, alloc, test)]
 #![plugin(serde_macros)]
 #![plugin(regex_macros)]
 
@@ -13,6 +13,7 @@ extern crate rmp;
 extern crate sodiumoxide;
 extern crate rmp_serialize;
 extern crate rustc_serialize;
+extern crate test;
 
 pub mod compose;
 pub mod parse;
@@ -56,7 +57,7 @@ impl SaltpackMessageType {
 
 
 #[cfg(test)]
-mod test {
+mod tests {
 
     use super::*;
 

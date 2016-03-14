@@ -2,6 +2,7 @@
 use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::secretbox;
 use sodiumoxide::crypto::hash::hash;
+use sodiumoxide::crypto::auth;
 use rustc_serialize::Encodable;
 use rmp_serialize::Encoder;
 use std::mem::size_of;
@@ -25,8 +26,10 @@ pub struct Saltpack {
     payload_packets : Option<Vec<PayloadPacket>>,
 }
 
+pub struct Authenticator(Vec<u8>);
+
 pub struct PayloadPacket {
-    authenticators : Vec<Vec<u8>>,
+    authenticators : Vec<Authenticator>,
     secretbox_payload : Vec<u8>,
 }
 
@@ -55,7 +58,12 @@ impl Saltpack {
 
         new_saltpack.compose_saltpack_header(&sender, &eph_key, &recipients);
 
-        new_saltpack.add_payload(&sender, payload, 0);
+        for chunk in payload.chunks(1000*1000) {
+            new_saltpack.add_payload(&chunk, 0);
+        }
+
+        // finalize
+        new_saltpack.add_payload(&[], 0);
 
         new_saltpack
     }
@@ -97,7 +105,7 @@ impl Saltpack {
 
         // 6 Serialize the list from #5 into a MessagePack array object.
         // estimate buf size
-        let mut bufsize = size_of::<HeaderSerializable>()
+        let bufsize = size_of::<HeaderSerializable>()
                         + header.0.len()
                         + header.3.len()
                         + header.4.len()
@@ -138,10 +146,8 @@ impl Saltpack {
 
     }
 
-    pub fn add_payload(&mut self, sender : &KeyPair, payload : &[u8], packetnumber : u64) {
+    fn add_payload(&mut self, payload : &[u8], packetnumber : u64) {
 
-        let authenticators = Vec::<Vec<u8>>::new();
-        let secretbox_payload = Vec::<u8>::new();
 
         // The nonce is saltpack_ploadsbNNNNNNNN where NNNNNNNN is the packet numer as an 8-byte big-endian unsigned integer. The first payload packet is number 0.
         let mut nonce : [u8; 24] = *b"saltpack_ploadsbNNNNNNNN";
@@ -150,18 +156,34 @@ impl Saltpack {
             std::slice::from_raw_parts(&packetnumber_big_endian as *const _ as *const u8, 8)
         };
         for (pn, n) in packetnumber_bytes.iter().zip(nonce.iter_mut()) { *n = *pn; }
-        let nonce = CBNonce(nonce);
+        let nonce = SBNonce(nonce);
+
+        // The payload secretbox is a NaCl secretbox containing a chunk of the plaintext bytes, max size 1 MB. It's encrypted with the payload key.
+        let secretbox_payload = secretbox::seal(/*msg*/&payload[..],
+                                                 /*nonce*/&nonce,
+                                                 /*key*/&self.payload_key);
+
+
 
         // 1 Concatenate the header hash, the nonce for the payload secretbox, and the payload secretbox itself.
 
-        let mut cat = Vec::with_capacity(nonce.0.len() + self.header_hash.unwrap().as_ref().len() + secretbox_payload.len());
-        cat.extend_from_slice(&self.header_hash.unwrap().as_ref().[..]);
+        let mut cat = Vec::with_capacity(nonce.0.len()
+                                        + self.header_hash.as_ref().unwrap().len()
+                                        + secretbox_payload.len());
+        cat.extend_from_slice(&self.header_hash.as_ref().unwrap()[..]);
         cat.extend_from_slice(&nonce.0[..]);
         cat.extend_from_slice(&secretbox_payload[..]);
 
         // 2 Compute the crypto_hash (SHA512) of the bytes from #1.
+        let headerhash = hash(&cat[..]);
 
         // 3 For each recipient, compute the crypto_auth (HMAC-SHA512, truncated to 32 bytes) of the hash from #2, using that recipient's MAC key.
+        let mut authenticators = Vec::new();
+        for mac in self.macs.as_ref().unwrap().iter() {
+            let mac = auth::Key::from_slice(&mac[..]).unwrap();
+            let tag = auth::authenticate(&headerhash.0, &mac);
+            authenticators.push(Authenticator(Vec::from(&tag.0[..])));
+        }
 
 
         let packet = PayloadPacket {
@@ -173,20 +195,36 @@ impl Saltpack {
     }
 }
 #[cfg(test)]
-mod test {
+mod tests {
 
     use super::*;
     use super::super::*;
+    use test::{self, Bencher};
 
     #[test]
     fn make_saltpack() {
-        let mut sender = KeyPair::gen();
+        let sender = KeyPair::gen();
         let mut recipients = Vec::<KeyPair>::new();
-        let mut payload = [10u8; 100];
         recipients.push(KeyPair::gen());
         recipients.push(KeyPair::gen());
         recipients.push(KeyPair::gen());
+        let payload = [10u8; 100];
         Saltpack::encrypt(Some(&sender), &recipients, &payload);
         Saltpack::encrypt(None, &recipients, &payload);
+    }
+
+    #[bench]
+    fn bench_encrypt_2mb_100recip(b: &mut Bencher) {
+        let sender = KeyPair::gen();
+        let mut recipients = Vec::<KeyPair>::new();
+        for _ in 0..100 {
+            recipients.push(KeyPair::gen());
+        }
+        let payload = [10u8; 2*1000*1000 + 100];
+
+        b.iter(|| {
+            let saltpack = Saltpack::encrypt(Some(&sender), &recipients, &payload);
+            test::black_box(saltpack.payload_packets.unwrap());
+        });
     }
 }
