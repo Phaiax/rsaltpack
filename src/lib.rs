@@ -36,7 +36,10 @@ impl KeyPair {
         let (p, s) = box_::gen_keypair();
         KeyPair { p : p, s : s }
     }
+    // sodiumoxide has implemented Drop for Secretkey -> wipe
 }
+
+
 
 #[derive(Debug, PartialEq)]
 pub enum SaltpackMessageType {

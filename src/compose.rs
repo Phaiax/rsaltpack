@@ -6,6 +6,7 @@ use sodiumoxide::crypto::auth;
 use rustc_serialize::Encodable;
 use rmp_serialize::Encoder;
 use std::mem::size_of;
+use std::io::{Read, Chain};
 use std;
 
 
@@ -15,28 +16,34 @@ pub struct RecipSerializable(Vec<u8>, Vec<u8>);
 pub struct HeaderSerializable(String, (u32, u32), u32, Vec<u8>, Vec<u8>, Vec<RecipSerializable>);
 #[derive(RustcEncodable, RustcDecodable, PartialEq, Debug)]
 pub struct HeaderOuterSerializable(Vec<u8>);
-
-use ::{Key, KeyPair, SaltpackMessageType, CBNonce, SBNonce};
-
-pub struct Saltpack {
-    payload_key : Key,
-    header_hash : Option<Vec<u8>>,
-    header_messagepacked : Option<Vec<u8>>,
-    macs : Option<Vec<Vec<u8>>>,
-    payload_packets : Option<Vec<PayloadPacket>>,
-}
-
+#[derive(RustcEncodable, RustcDecodable, PartialEq, Debug)]
+pub struct PayloadPacketSerializable (Vec<Authenticator>, Vec<u8>);
+#[derive(RustcEncodable, RustcDecodable, PartialEq, Debug)]
 pub struct Authenticator(Vec<u8>);
 
-pub struct PayloadPacket {
-    authenticators : Vec<Authenticator>,
-    secretbox_payload : Vec<u8>,
+use ::{Key, PublicKey, KeyPair, SaltpackMessageType, CBNonce, SBNonce};
+
+pub struct Saltpack {
+    header_hash : Option<Vec<u8>>,
+    header_messagepacked : Option<Vec<u8>>,
+    payload_packets : Vec<Vec<u8>>,
+    reader : ReaderState,
 }
+
+#[derive(PartialEq, Debug)]
+pub enum ReaderState {
+    HeaderPacket{ptr : usize},
+    PayloadPacket{packet : usize, ptr : usize},
+    Finished
+}
+
+
 
 impl Saltpack {
 
+
     pub fn encrypt(sender : Option<&KeyPair>,
-                   recipients : &Vec<KeyPair>,
+                   recipients : &Vec<PublicKey>,
                    payload : &[u8]) -> Saltpack
     {
         // 1 Generate a random 32-byte payload key.
@@ -49,47 +56,50 @@ impl Saltpack {
         let sender = if sender.is_none() { &eph_key } else { sender.unwrap() };
 
         let mut new_saltpack = Saltpack {
-            payload_key : payload_key,
             header_hash : None,
             header_messagepacked : None,
-            macs : None,
-            payload_packets : Some(Vec::new()),
+            payload_packets : Vec::new(),
+            reader : ReaderState::HeaderPacket{ptr:0}
         };
 
-        new_saltpack.compose_saltpack_header(&sender, &eph_key, &recipients);
+        let macs = new_saltpack.compose_saltpack_header(&sender, &recipients, &eph_key, &payload_key);
 
         for chunk in payload.chunks(1000*1000) {
-            new_saltpack.add_payload(&chunk, 0);
+            new_saltpack.add_payload(&chunk, 0, &payload_key, &macs);
         }
 
         // finalize
-        new_saltpack.add_payload(&[], 0);
+        new_saltpack.add_payload(&[], 0, &payload_key, &macs);
+
+        // wipe keys
+        // libodium takes care of that via Drop
 
         new_saltpack
     }
 
-    /// returns payload key and macs
+    /// returns macs
     fn compose_saltpack_header(&mut self,
                                sender : &KeyPair,
+                               recipients : &Vec<PublicKey>,
                                eph_key : &KeyPair,
-                               recipients : &Vec<KeyPair>)
+                               payload_key : &Key) -> Vec<auth::Key>
     {
 
         // 3 Encrypt the sender's long-term public key using crypto_secretbox with the payload key and the nonce `saltpack_sender_key_sbox`, to create the sender secretbox.
         let secretbox_sender_p = secretbox::seal(/*msg*/&sender.p.0,
                                                  /*nonce*/&SBNonce(*b"saltpack_sender_key_sbox"),
-                                                 /*key*/&self.payload_key);
+                                                 /*key*/&payload_key);
 
         // 4 For each recipient, encrypt the payload key using crypto_box with the recipient's public key, the ephemeral private key, and the nonce saltpack_payload_key_box. Pair these with the recipients' public keys, or null for anonymous recipients, and collect the pairs into the recipients list.
         let mut recipients_list = Vec::<_>::with_capacity(recipients.len());
         let mut bufsize_for_recipients = 0usize;
         for recip_key in recipients.iter() {
-            let cryptobox_payloadkey_for_recipient = box_::seal(/*msg*/&self.payload_key.0,
+            let cryptobox_payloadkey_for_recipient = box_::seal(/*msg*/&payload_key.0,
                                                  /*nonce*/&CBNonce(*b"saltpack_payload_key_box"),
-                                                 /*p key*/&recip_key.p,
+                                                 /*p key*/&recip_key,
                                                  /*s key*/&eph_key.s);
             let recip_pair = RecipSerializable(cryptobox_payloadkey_for_recipient,
-                                               Vec::from(&recip_key.p.0[..]));
+                                               Vec::from(&recip_key.0[..]));
             bufsize_for_recipients += recip_pair.0.len() + recip_pair.1.len();
             recipients_list.push(recip_pair);
         }
@@ -133,20 +143,26 @@ impl Saltpack {
         let mut nonce = [0; 24];
         for (hh, n) in headerhash.0.iter().zip(nonce.iter_mut()) { *n = *hh; }
         let nonce = CBNonce(nonce);
-        let mut mac_keys = Vec::with_capacity(recipients.len());
+        let mut macs = Vec::with_capacity(recipients.len());
         for recip_key in recipients.iter() {
             let mut mac_box = box_::seal(/*msg*/&zeros,
                                      /*nonce*/&nonce,
-                                     /*p key*/&recip_key.p,
+                                     /*p key*/&recip_key,
                                      /*s key*/&sender.s);
-            mac_box.resize(32, 0);
-            mac_keys.push(mac_box);
-        }
-        self.macs = Some(mac_keys);
+            let mac = auth::Key::from_slice(&mac_box[0..32]).unwrap();
+            // wipe mac_box
+            for b in mac_box.iter_mut() { *b = 0; }
 
+            macs.push(mac);
+        }
+        macs
     }
 
-    fn add_payload(&mut self, payload : &[u8], packetnumber : u64) {
+    fn add_payload(&mut self,
+                   payload : &[u8],
+                   packetnumber : u64,
+                   payload_key : &Key,
+                   macs : &Vec<auth::Key>) {
 
 
         // The nonce is saltpack_ploadsbNNNNNNNN where NNNNNNNN is the packet numer as an 8-byte big-endian unsigned integer. The first payload packet is number 0.
@@ -161,7 +177,7 @@ impl Saltpack {
         // The payload secretbox is a NaCl secretbox containing a chunk of the plaintext bytes, max size 1 MB. It's encrypted with the payload key.
         let secretbox_payload = secretbox::seal(/*msg*/&payload[..],
                                                  /*nonce*/&nonce,
-                                                 /*key*/&self.payload_key);
+                                                 /*key*/&payload_key);
 
 
 
@@ -179,21 +195,84 @@ impl Saltpack {
 
         // 3 For each recipient, compute the crypto_auth (HMAC-SHA512, truncated to 32 bytes) of the hash from #2, using that recipient's MAC key.
         let mut authenticators = Vec::new();
-        for mac in self.macs.as_ref().unwrap().iter() {
-            let mac = auth::Key::from_slice(&mac[..]).unwrap();
+        let mut bufsize = secretbox_payload.len() + 12;
+        for mac in macs.iter() {
             let tag = auth::authenticate(&headerhash.0, &mac);
+            bufsize += tag.0.len() + 2;
             authenticators.push(Authenticator(Vec::from(&tag.0[..])));
         }
 
+        // Compose Packet
+        let packet = PayloadPacketSerializable (
+            authenticators,
+            secretbox_payload,
+        );
+        let mut packet_messagepacked = Vec::<u8>::with_capacity(bufsize);
+        packet.encode(&mut Encoder::new(&mut packet_messagepacked)).unwrap();
 
-        let packet = PayloadPacket {
-            authenticators : authenticators,
-            secretbox_payload : secretbox_payload,
-        };
-        let mut packets = self.payload_packets.as_mut().unwrap();
-        packets.push(packet);
+        self.payload_packets.push(packet_messagepacked);
+
+    }
+
+    pub fn armor() -> String {
+        "".to_string()
+    }
+
+}
+
+impl Read for Saltpack {
+
+    /// Recursive. May be a problem for large payloads?
+    /// Recursion deph will be buf size in mb
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let mut bytes_written = 0;
+
+        if let ReaderState::HeaderPacket{ptr} = self.reader {
+            if let Some(ref hp) = self.header_messagepacked {
+                let bytes_just_written = try!((&hp[ptr..]).read(&mut buf[bytes_written..]));
+                bytes_written += bytes_just_written;
+                if ptr == hp.len() {
+                    // header finished, continue with first packet
+                    self.reader = ReaderState::PayloadPacket{ packet : 0,
+                                                              ptr : 0 };
+                } else {
+                    // buffer full, wait for next read() call
+                    self.reader = ReaderState::HeaderPacket { ptr : ptr + bytes_just_written };
+                    return Ok(bytes_written);
+                }
+            } else {
+                // No header data found.
+                return Err(std::io::Error::new(std::io::ErrorKind::NotFound, ""));
+            }
+        }
+        while let ReaderState::PayloadPacket{packet, ptr} = self.reader {
+            if let Some(ref pp) = self.payload_packets.get(packet) {
+                let bytes_just_written = try!((&pp[ptr..]).read(&mut buf[bytes_written..]));
+                bytes_written += bytes_just_written;
+                if ptr == pp.len() {
+                    // packet finished, next packet
+                    self.reader = ReaderState::PayloadPacket{ packet : packet + 1,
+                                                              ptr : 0 };
+                    continue;
+                } else {
+                    // buffer full, wait for next read() call
+                    self.reader = ReaderState::PayloadPacket{ packet : packet,
+                                                              ptr : ptr + bytes_just_written };
+                    return Ok(bytes_written)
+                }
+            } else {
+                // payload not found or no more payload
+                self.reader = ReaderState::Finished;
+            }
+        }
+        if self.reader == ReaderState::Finished {
+            Ok(bytes_written)
+        } else {
+            panic!("should not happen");
+        }
     }
 }
+
 #[cfg(test)]
 mod tests {
 
@@ -204,27 +283,47 @@ mod tests {
     #[test]
     fn make_saltpack() {
         let sender = KeyPair::gen();
-        let mut recipients = Vec::<KeyPair>::new();
-        recipients.push(KeyPair::gen());
-        recipients.push(KeyPair::gen());
-        recipients.push(KeyPair::gen());
+        let mut recipients = Vec::<PublicKey>::new();
+        recipients.push(KeyPair::gen().p);
+        recipients.push(KeyPair::gen().p);
+        recipients.push(KeyPair::gen().p);
         let payload = [10u8; 100];
         Saltpack::encrypt(Some(&sender), &recipients, &payload);
         Saltpack::encrypt(None, &recipients, &payload);
     }
 
+    #[test]
+    fn giant_saltpack() {
+        let mut recipients = Vec::<PublicKey>::new();
+        recipients.push(KeyPair::gen().p);
+        recipients.push(KeyPair::gen().p);
+        recipients.push(KeyPair::gen().p);
+
+        // todo: make encrypt take either a reference or a writer via some enum
+        // let the struct Saltpack store that reference or writer
+        // do generate the payload packets on the fly when read() is called
+        let payload = vec![10u8; 1000*1000*1000]; // 500mb
+        let mut saltpack = Saltpack::encrypt(None, &recipients, &payload);
+        let mut buff = Vec::with_capacity(1000*5); // 5mb chunks
+        buff.resize(1000*5, 0);
+        use std::io::Read;
+        while saltpack.read(&mut buff[..]).unwrap() > 0 {
+            buff.resize(0, 0);
+        }
+    }
+
     #[bench]
     fn bench_encrypt_2mb_100recip(b: &mut Bencher) {
         let sender = KeyPair::gen();
-        let mut recipients = Vec::<KeyPair>::new();
+        let mut recipients = Vec::<PublicKey>::new();
         for _ in 0..100 {
-            recipients.push(KeyPair::gen());
+            recipients.push(KeyPair::gen().p);
         }
         let payload = [10u8; 2*1000*1000 + 100];
 
         b.iter(|| {
             let saltpack = Saltpack::encrypt(Some(&sender), &recipients, &payload);
-            test::black_box(saltpack.payload_packets.unwrap());
+            test::black_box(saltpack.payload_packets);
         });
     }
 }
