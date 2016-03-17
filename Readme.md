@@ -6,5 +6,5 @@ Implementation of the [saltpack](https://saltpack.org/) protocoll in rust. This 
 
 # Documentation
 
-API is not stable and not complete. [Documentation](https://phaiax.github.io/saltpack).
+API is not stable and not complete. [Documentation](http://phaiax.github.io/rsaltpack/rsaltpack/).
 
