@@ -1,12 +1,10 @@
 
 # rsaltpack
 
-Implementation of the [saltpack][saltpack] protocoll in rust. This software is in development and not usable.
+Implementation of the [saltpack](https://saltpack.org/) protocoll in rust. This software is in development and not usable.
 
-[saltpack] : https://saltpack.org/
 
 # Documentation
 
-API is not stable and not complete. [Documentation][ghpages].
+API is not stable and not complete. [Documentation](https://phaiax.github.io/saltpack).
 
-[ghpages] : https://phaiax.github.io/saltpack
