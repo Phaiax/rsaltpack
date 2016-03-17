@@ -29,7 +29,7 @@ pub use sodiumoxide::crypto::secretbox::Nonce as SBNonce;
 
 use sodiumoxide::crypto::box_;
 
-pub struct KeyPair{ p : PublicKey, s : SecretKey }
+pub struct KeyPair{ pub p : PublicKey, pub s : SecretKey }
 
 impl KeyPair {
     pub fn gen() -> KeyPair {
