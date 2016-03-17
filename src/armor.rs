@@ -42,6 +42,136 @@ pub fn dearmor(text : &str, max : usize) -> Result<Vec<Dearmored>, String> {
     }
 }
 
+pub struct ArmoringStream {
+    meta: ArmorInfo,
+    state : ArmoringStreamState,
+    buffer : [u8 ; 43],
+}
+
+/// the associated
+#[derive(Debug)]
+enum ArmoringStreamState {
+    AtHeader{ pos: usize, header : String},
+    AtData{ space_in: usize, newline_in : usize, bufpos : usize, buflen : usize },
+    AtFooter{ pos: usize, footer : String},
+}
+
+const SPACE_EVERY: usize = 15;
+const NEWLINE_EVERY: usize = 200;
+
+impl ArmoringStream {
+    pub fn new(vendorstring: String,
+               messagetype: SaltpackMessageType) -> ArmoringStream {
+        ArmoringStream {
+            state : ArmoringStreamState::AtHeader {
+                pos : 0,
+                header : format!("BEGIN {} SALTPACK {}. ", vendorstring, messagetype.to_string())
+            },
+            meta : ArmorInfo {
+                vendorstring : vendorstring,
+                messagetype : messagetype
+            },
+            buffer : [0u8 ; 43]
+        }
+    }
+
+    /// Reads bytes from `binary_in` and writes the armored version into `armored_out`
+    /// If binary_in contains the last bytes that have to be written, set last_bytes to
+    /// true. Then the footer will be written.
+    ///
+    /// Returns the bytes read from `binary_in` and the bytes written to `armored_out`
+    pub fn armor(&mut self, mut binary_in : &[u8], last_bytes : bool, mut armored_out : &mut[u8])
+    -> Result<(usize, usize), String> {
+        use std::io::Write;
+        let binary_in_len = binary_in.len();
+        let armored_out_len = armored_out.len();
+        let mut next = false;
+
+        if let ArmoringStreamState::AtHeader{ref mut pos, ref header} = self.state {
+            *pos += armored_out.write(&header.as_bytes()[*pos..]).unwrap();
+            next = *pos == header.len();
+        };
+
+        if next {
+            self.state = ArmoringStreamState::AtData{space_in : SPACE_EVERY,
+                                                     newline_in : NEWLINE_EVERY,
+                                                     bufpos : 0,
+                                                     buflen : 0};
+            next = false;
+        }
+
+        if let ArmoringStreamState::AtData{ref mut space_in,
+                                           ref mut newline_in,
+                                           ref mut bufpos,
+                                           ref mut buflen } = self.state {
+            while armored_out.len() > 0 {
+                if bufpos == buflen {
+                    // 32 byte <> 43 characters
+                    if binary_in.len() >= 32 {
+                        *buflen = bin_to_base62_alphabet(&binary_in[0..32], &mut self.buffer[..]);
+                        binary_in = &binary_in[32..];
+                        *bufpos = 0;
+                    } else if binary_in.len() > 0 && last_bytes {
+                        *buflen = bin_to_base62_alphabet(&binary_in[..], &mut self.buffer[..]);
+                        binary_in = &[];
+                        *bufpos = 0;
+                    } else if binary_in.len() == 0 && last_bytes {
+                        next = true;
+                        break;
+                    } else {
+                        break; // waiting for more input data
+                    }
+                }
+                // self.buffer vergrößern, bin_to_base62_alphabet (oder hier)
+                // direkt im callback von ramps to_base_callback die leerzeichen
+                // und spaces hinyufügen
+
+
+            }
+        }
+
+
+        if let ArmoringStreamState::AtFooter{ref mut pos, ref footer} = self.state {
+
+        }
+        Ok((binary_in_len   - binary_in.len() ,
+            armored_out_len - armored_out.len()))
+    }
+
+
+
+
+//    #[inline]
+//    fn dealphabet_chunk(&mut self, len : usize) {
+//        let chunk = &self.stripped[0..len];
+//        for (c, b) in chunk.iter().zip(self.buff.iter_mut()) {
+//            *b = Base62Blocks::dealphabet(*c);
+//        }
+//    }
+}
+
+use std::fmt;
+impl fmt::Debug for ArmoringStream {
+    fn fmt(&self, mut f : &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        try!(self.meta.fmt(&mut f));
+        try!(self.state.fmt(&mut f));
+        try!(self.buffer[..].fmt(&mut f));
+        Ok(())
+    }
+}
+
+
+///#[inline]
+pub fn alphabet(i : u8) -> u8 {
+    if i <= 9 {
+        i + b'0'
+    } else if i <= 35 {
+        i + b'A' - 10
+    } else {
+        i + b'a' - 36
+    }
+}
+
 pub fn strip_whitespace(input : &str) -> String {
     let mut out = String::with_capacity(input.len());
     for byte in input.chars() {
@@ -170,7 +300,19 @@ pub fn base62_to_bin(base62 : &[u8], rawout : &mut[u8]) -> usize {
     i.write_big_endian_buffer(rawout).unwrap()
 }
 
-
+/// returns the number of bytes written into base62out
+pub fn bin_to_base62_alphabet(rawin : &[u8], mut base62out : &mut[u8]) -> usize {
+    assert!(rawin.len() <= 32);
+    assert!(base62out.len() >= 43);
+    let i = Int::from_big_endian_slice(rawin);
+    let written = 0;
+    i.write_radix_callback(62, |b| {
+        unsafe {
+            *base62out.get_unchecked_mut(written) = alphabet(b);
+        }
+    });
+    written
+}
 
 
 #[cfg(test)]
@@ -196,9 +338,11 @@ mod tests {
     }
 
     #[test]
-    fn alphabet() {
+    fn alphabet_() {
         for (i, c) in (ALPHABET).as_bytes().iter().enumerate() {
             assert_eq!(Base62Blocks::dealphabet(*c) as usize, i);
+            assert_eq!(alphabet(i as u8), *c);
         }
     }
+
 }

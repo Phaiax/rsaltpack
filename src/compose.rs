@@ -74,6 +74,7 @@ use rmp_serialize::Encoder;
 use std::mem::size_of;
 use std::io::{Read, Write};
 use std::collections::VecDeque;
+use std::string::ToString;
 use std;
 use std::io;
 
@@ -102,11 +103,6 @@ pub struct Saltpack {
 
     bytes_read_from_first : usize,
     output_buffer : VecDeque<Vec<u8>>,
-}
-
-pub struct ArmoredSaltpack {
-    saltpack : Saltpack,
-    vendor : String
 }
 
 pub fn encrypt_to_binary(sender : Option<&KeyPair>,
@@ -281,7 +277,7 @@ impl Saltpack {
         if self.input_buffer.len() == 0 {
             return false;
         }
-        println!("Encr START");
+        //$ println!("Encr START");
 
         let next = self.input_buffer.pop_front().unwrap();
         let payload = &next[..];
@@ -290,11 +286,11 @@ impl Saltpack {
         self.next_packet_number += 1;
 
         // The payload secretbox is a NaCl secretbox containing a chunk of the plaintext bytes, max size 1 MB. It's encrypted with the payload key.
-        println!("   Secretbox BEGIN");
+        //$ println!("   Secretbox BEGIN");
         let secretbox_payload = secretbox::seal(/*msg*/&payload[..],
                                                  /*nonce*/&nonce,
                                                  /*key*/&self.payload_key.as_ref().unwrap());
-        println!("   Secretbox END");
+        //$ println!("   Secretbox END");
 
 
 
@@ -308,33 +304,33 @@ impl Saltpack {
         cat.extend_from_slice(&secretbox_payload[..]);
 
         // 2 Compute the crypto_hash (SHA512) of the bytes from #1.
-        println!("     Hash BEGIN");
+        //$ println!("     Hash BEGIN");
         let headerhash = hash(&cat[..]);
-        println!("     Hash END");
+        //$ println!("     Hash END");
 
         // 3 For each recipient, compute the crypto_auth (HMAC-SHA512, truncated to 32 bytes) of the hash from #2, using that recipient's MAC key.
         let mut authenticators = Vec::new();
         let mut bufsize = secretbox_payload.len() + 12;
-        println!("       Auth BEGIN");
+        //$ println!("       Auth BEGIN");
         for mac in self.macs.iter() {
             let tag = auth::authenticate(&headerhash.0, &mac);
             bufsize += tag.0.len() + 2;
             authenticators.push(Authenticator(Vec::from(&tag.0[..])));
         }
-        println!("       Auth END");
+        //$ println!("       Auth END");
 
         // Compose Packet
         let packet = PayloadPacketSerializable (
             authenticators,
             secretbox_payload,
         );
-        println!("          Encode BEGIN");
+        //$ println!("          Encode BEGIN");
         let mut packet_messagepacked = Vec::<u8>::with_capacity(bufsize);
         packet.encode(&mut Encoder::new(&mut packet_messagepacked)).unwrap();
-        println!("          Encode END");
+        //$ println!("          Encode END");
 
         self.output_buffer.push_back(packet_messagepacked);
-        println!("              Encr END");
+        //$ println!("              Encr END");
         true
     }
 
@@ -384,8 +380,10 @@ impl Write for Saltpack {
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        self.flushed = true;
-        self.input_buffer.push_back(Vec::new()); // finish with empty packet
+        if ! self.flushed {
+            self.flushed = true;
+            self.input_buffer.push_back(Vec::new()); // finish with empty packet
+        }
 
         Ok(())
     }
@@ -421,6 +419,32 @@ impl Read for Saltpack {
     }
 }
 
+
+
+pub struct ArmoredSaltpack {
+    saltpack : Saltpack,
+    vendor : String
+}
+
+
+impl Read for ArmoredSaltpack {
+
+    /// Writes the armored saltpack (ascii only characters) as binary data (u8)
+    /// into `buffer`.
+    fn read(&mut self, mut buffer : &mut [u8]) -> std::io::Result<usize> {
+
+        self.saltpack.read(&mut buffer)
+    }
+}
+
+impl ArmoredSaltpack {
+
+    /// Outputs all
+    fn to_string(&mut self) -> String {
+        "".to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -442,6 +466,7 @@ mod tests {
 
     #[test]
     fn giant_saltpack() {
+        return;
         let mut recipients = Vec::<PublicKey>::new();
         recipients.push(KeyPair::gen().p);
         recipients.push(KeyPair::gen().p);

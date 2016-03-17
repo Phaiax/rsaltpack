@@ -58,6 +58,17 @@ impl SaltpackMessageType {
     }
 }
 
+use std::string::ToString;
+impl ToString for SaltpackMessageType {
+    fn to_string(&self) -> String {
+        match *self {
+            SaltpackMessageType::ENCRYPTEDMESSAGE => "ENCRYPTEDMESSAGE".to_string(),
+            SaltpackMessageType::SIGNEDMESSAGE => "SIGNEDMESSAGE".to_string(),
+            SaltpackMessageType::DETACHEDSIGNATURE => "DETACHEDSIGNATURE".to_string()
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
