@@ -18,7 +18,8 @@ extern crate test;
 pub mod compose;
 pub mod parse;
 pub mod armor;
-
+pub mod dearmor;
+pub mod util;
 
 pub use sodiumoxide::crypto::box_::PublicKey;
 pub use sodiumoxide::crypto::box_::SecretKey;

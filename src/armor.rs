@@ -3,95 +3,103 @@ use regex::Regex;
 use ramp::Int;
 use std::cmp::min;
 use std::vec::Vec;
+use std::io::{Read, Write};
 pub use std::ops::Range;
 pub use ::SaltpackMessageType;
+use util::Consumable;
 
-
-#[derive(Debug, PartialEq)]
-pub struct ArmorInfo {
-    pub vendorstring: String,
-    pub messagetype: SaltpackMessageType,
+/// This function is a short interface to ArmoringStream.
+/// It will convert binary input into the base62 armored version including
+/// header and footer.
+pub fn armor(binary_in : &mut [u8],
+             vendorstring: &str,
+             messagetype: SaltpackMessageType)
+             -> String {
+    let mut AS = ArmoringStream::new(vendorstring.to_string(), messagetype);
+    let mut out = vec![0u8; AS.predict_armored_len(binary_in.len())];
+    let (_, written, ready) = AS.armor(&binary_in[..], true, &mut out[..]).unwrap();
+    out.resize(written, 0);
+    assert!(ready);
+    unsafe { String::from_utf8_unchecked(out) }
 }
 
-#[derive(Debug)]
-pub struct Dearmored {
-    pub meta: ArmorInfo,
-    pub binary: Vec<u8>,
-}
-
-pub fn dearmor(text : &str, max : usize) -> Result<Vec<Dearmored>, String> {
-    let stripped = strip_whitespace(&text);
-    let mut stripped_view = &stripped[..];
-    let mut saltpacks = Vec::<Dearmored>::with_capacity(min(3, max));
-    for _ in 0..max {
-        if let Some( (inners, meta, range) ) = assert_and_strip_header_and_footer(&stripped_view) {
-            let rawdata = try!(convert_to_bytes(&inners));
-            stripped_view = &stripped_view[range.end..];
-            saltpacks.push( Dearmored {
-                meta : meta,
-                binary : rawdata
-            } );
-        } else {
-            break;
-        }
-    }
-    if saltpacks.is_empty() {
-        Err("No saltpacks found".to_string())
-    } else {
-        Ok(saltpacks)
-    }
-}
-
+/// Can be used as a streaming interface to armor large amounts of binary data.
+/// But it is not recommended to use the armored version to send big amounts of
+/// data. It is slow and inefficient.
 pub struct ArmoringStream {
-    meta: ArmorInfo,
     state : ArmoringStreamState,
-    buffer : [u8 ; 43],
+    buffer : [u8 ; BUF_SIZE],
+    header : String,
+    footer : String
 }
 
-/// the associated
-#[derive(Debug)]
+/// State of the armor conversion method.
+#[derive(Debug, PartialEq)]
 enum ArmoringStreamState {
-    AtHeader{ pos: usize, header : String},
+    AtHeader{ pos: usize},
     AtData{ space_in: usize, newline_in : usize, bufpos : usize, buflen : usize },
-    AtFooter{ pos: usize, footer : String},
+    AtFooter{ pos: usize},
+    Finished,
 }
 
-const SPACE_EVERY: usize = 15;
-const NEWLINE_EVERY: usize = 200;
+/// One block of 32 byte will be converted into 43 characters, if it is not the last block.
+const CHARS_PER_BLOCK: usize = 43;
+/// The armored string will contain a space every 15 characters.
+pub const SPACE_EVERY: usize = 15;
+/// The armored string will contain a newline instead of a space every 200 words.
+pub const NEWLINE_EVERY: usize = 200;
+/// Storage needed to store the armored 43 characters with inserted spaces.
+const BUF_SIZE : usize = CHARS_PER_BLOCK + CHARS_PER_BLOCK / SPACE_EVERY + 1;
+
 
 impl ArmoringStream {
+
+    /// Create a new streaming interface
     pub fn new(vendorstring: String,
-               messagetype: SaltpackMessageType) -> ArmoringStream {
+               messagetype: SaltpackMessageType)
+               -> ArmoringStream {
         ArmoringStream {
-            state : ArmoringStreamState::AtHeader {
-                pos : 0,
-                header : format!("BEGIN {} SALTPACK {}. ", vendorstring, messagetype.to_string())
-            },
-            meta : ArmorInfo {
-                vendorstring : vendorstring,
-                messagetype : messagetype
-            },
-            buffer : [0u8 ; 43]
+            state : ArmoringStreamState::AtHeader {pos : 0},
+            buffer : [0u8 ; BUF_SIZE],
+            header : format!("BEGIN {} SALTPACK {}. ", vendorstring, messagetype.to_string()),
+            footer : format!(". END {} SALTPACK {}.", vendorstring, messagetype.to_string()),
         }
+    }
+
+    /// Predicts the total length of armored data including header and footer.
+    /// Since the armored version is guaranteed to contain only ascii characters,
+    /// the (armored output as [u8]).len() equals its utf-8 size.
+    pub fn predict_armored_len(&self, binary_data_len : usize) -> usize {
+        // 74.42 is the slightly down rounded efficiency (log2(62)/8)
+        let without_spaces : f64 = (binary_data_len as f64) / 0.7442f64;
+        let with_spaces : f64 = without_spaces + (without_spaces / SPACE_EVERY as f64);
+        self.header.len() + self.footer.len() + (with_spaces as usize)
     }
 
     /// Reads bytes from `binary_in` and writes the armored version into `armored_out`
     /// If binary_in contains the last bytes that have to be written, set last_bytes to
     /// true. Then the footer will be written.
     ///
-    /// Returns the bytes read from `binary_in` and the bytes written to `armored_out`
-    pub fn armor(&mut self, mut binary_in : &[u8], last_bytes : bool, mut armored_out : &mut[u8])
-    -> Result<(usize, usize), String> {
-        use std::io::Write;
+    /// Returns the bytes read from `binary_in`, the bytes written to `armored_out`
+    /// and if the footer has been written completely.
+    pub fn armor(&mut self,
+                 mut binary_in : &[u8],
+                 last_bytes : bool,
+                 mut armored_out : &mut[u8])
+                 -> Result<(usize, usize, bool), String> {
+
         let binary_in_len = binary_in.len();
         let armored_out_len = armored_out.len();
         let mut next = false;
+        let mut ready = false;
 
-        if let ArmoringStreamState::AtHeader{ref mut pos, ref header} = self.state {
-            *pos += armored_out.write(&header.as_bytes()[*pos..]).unwrap();
-            next = *pos == header.len();
+        // Write as much header as possible.
+        if let ArmoringStreamState::AtHeader{ref mut pos} = self.state {
+            *pos += armored_out.write(&self.header.as_bytes()[*pos..]).unwrap();
+            next = *pos == self.header.len()
         };
 
+        // Switch to state `AtData` if header is written.
         if next {
             self.state = ArmoringStreamState::AtData{space_in : SPACE_EVERY,
                                                      newline_in : NEWLINE_EVERY,
@@ -100,20 +108,42 @@ impl ArmoringStream {
             next = false;
         }
 
+        // Write as much armored data as possible.
         if let ArmoringStreamState::AtData{ref mut space_in,
                                            ref mut newline_in,
                                            ref mut bufpos,
                                            ref mut buflen } = self.state {
-            while armored_out.len() > 0 {
-                if bufpos == buflen {
+            while armored_out.len() > 0 { // has place to write
+                if bufpos == buflen { // self.buffer got empty
+
                     // 32 byte <> 43 characters
-                    if binary_in.len() >= 32 {
-                        *buflen = bin_to_base62_alphabet(&binary_in[0..32], &mut self.buffer[..]);
+                    if binary_in.len() >= 32 && armored_out.len() >= BUF_SIZE {
+                        // shortcut: direct write to armored_out
+                        let written = b32bytes_to_base62_formatted(&binary_in[0..32],
+                                                         &mut armored_out,
+                                                         &mut *space_in,
+                                                         &mut *newline_in,
+                                                         true);
+                        armored_out.consume(written);
+                        binary_in = &binary_in[32..];
+                        continue; // bufpos is still buflen
+                    } else if binary_in.len() >= 32 {
+                        // the complete 43+x char block doesn't fit into armored_out
+                        // first base62-convert next 32 input bytes into self.buffer ...
+                        *buflen = b32bytes_to_base62_formatted(&binary_in[0..32],
+                                                         &mut self.buffer[..],
+                                                         &mut *space_in,
+                                                         &mut *newline_in,
+                                                         true);
                         binary_in = &binary_in[32..];
                         *bufpos = 0;
-                    } else if binary_in.len() > 0 && last_bytes {
-                        *buflen = bin_to_base62_alphabet(&binary_in[..], &mut self.buffer[..]);
-                        binary_in = &[];
+                    } else if binary_in.len() > 0 && last_bytes { // last non full block
+                        *buflen = b32bytes_to_base62_formatted(&binary_in[..],
+                                                         &mut self.buffer[..],
+                                                         &mut *space_in,
+                                                         &mut *newline_in,
+                                                         false);
+                        binary_in = &[]; // finish
                         *bufpos = 0;
                     } else if binary_in.len() == 0 && last_bytes {
                         next = true;
@@ -122,38 +152,47 @@ impl ArmoringStream {
                         break; // waiting for more input data
                     }
                 }
-                // self.buffer vergrößern, bin_to_base62_alphabet (oder hier)
-                // direkt im callback von ramps to_base_callback die leerzeichen
-                // und spaces hinyufügen
 
+                assert!(bufpos < buflen);
+                // ... then write all that fits into armored_out
+                *bufpos += armored_out.write(&self.buffer[*bufpos..]).unwrap();
 
             }
         }
 
-
-        if let ArmoringStreamState::AtFooter{ref mut pos, ref footer} = self.state {
-
+        // Switch to state `AtFooter` if main data is written.
+        if next {
+            self.state = ArmoringStreamState::AtFooter{
+                pos : 0
+            };
+            next = false;
         }
+
+        // Write as much footer data as possible.
+        if let ArmoringStreamState::AtFooter{ref mut pos} = self.state {
+            *pos += armored_out.write(&self.footer.as_bytes()[*pos..]).unwrap();
+            next = *pos == self.footer.len();
+        }
+
+        // Switch to state `Finished` if footer is written.
+        if next {
+            self.state = ArmoringStreamState::Finished;
+        }
+
+        if ArmoringStreamState::Finished == self.state {
+            ready = true;
+        }
+
         Ok((binary_in_len   - binary_in.len() ,
-            armored_out_len - armored_out.len()))
+            armored_out_len - armored_out.len(),
+            ready))
     }
 
-
-
-
-//    #[inline]
-//    fn dealphabet_chunk(&mut self, len : usize) {
-//        let chunk = &self.stripped[0..len];
-//        for (c, b) in chunk.iter().zip(self.buff.iter_mut()) {
-//            *b = Base62Blocks::dealphabet(*c);
-//        }
-//    }
 }
 
 use std::fmt;
 impl fmt::Debug for ArmoringStream {
     fn fmt(&self, mut f : &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        try!(self.meta.fmt(&mut f));
         try!(self.state.fmt(&mut f));
         try!(self.buffer[..].fmt(&mut f));
         Ok(())
@@ -161,7 +200,8 @@ impl fmt::Debug for ArmoringStream {
 }
 
 
-///#[inline]
+/// This function converts a zero based digit in base 62 to its ascii equivalent.
+#[inline]
 pub fn alphabet(i : u8) -> u8 {
     if i <= 9 {
         i + b'0'
@@ -172,177 +212,113 @@ pub fn alphabet(i : u8) -> u8 {
     }
 }
 
-pub fn strip_whitespace(input : &str) -> String {
-    let mut out = String::with_capacity(input.len());
-    for byte in input.chars() {
-        match byte {
-            'a' ... 'z' | 'A' ... 'Z' | '0' ... '9' | '.' => out.push(byte),
-            _ => ()
-        };
-    }
-    out
-}
-
-pub fn assert_and_strip_header_and_footer<'a>(input : &'a str) -> Option<(&'a str, ArmorInfo, Range<usize>)> {
-    let re : Regex = regex!(r"BEGIN([a-zA-Z0-9]+)?SALTPACK(ENCRYPTEDMESSAGE|SIGNEDMESSAGE|DETACHEDSIGNATURE)\.");
-    let cap = re.captures_iter(input).next();
-    if cap.is_none() {
-        return None;
-        //return Err("No Saltpack Message".to_string());
-    }
-    let header_match = cap.unwrap();
-    let vendor = header_match.at(1).unwrap_or("");
-    let typ = header_match.at(2).unwrap_or("");
-    let mut footer = String::with_capacity(header_match.len());
-    footer.push_str(".END");
-    footer.push_str(vendor);
-    footer.push_str("SALTPACK");
-    footer.push_str(typ);
-    footer.push_str(".");
-
-    let typ = match typ {
-        "ENCRYPTEDMESSAGE" => SaltpackMessageType::ENCRYPTEDMESSAGE,
-        "SIGNEDMESSAGE" => SaltpackMessageType::SIGNEDMESSAGE,
-        "DETACHEDSIGNATURE" => SaltpackMessageType::DETACHEDSIGNATURE,
-        _ => panic!("typ not covered")
-    };
-    let header_start = header_match.pos(0).unwrap().0;
-    let header_end = header_match.pos(0).unwrap().1;
-    println!("FOOTER: {:?}", footer);
-
-    for footer_start in header_end .. input.len()-footer.len()+1 {
-        let footer_end = footer_start + footer.len();
-
-        if input[footer_start..footer_end] == footer {
-            let headerinfo = ArmorInfo {
-                vendorstring : vendor.to_string(),
-                messagetype : typ,
-            };
-            let range = Range {
-                start : header_start,
-                end : footer_end
-            };
-            return Some( (&input[header_end..footer_start], headerinfo, range) );
-        }
-    }
-    None
-    //Err("No corresponding footer found.".to_string())
-}
-
-pub fn convert_to_bytes<'a>(stripped_input : & str) -> Result<Vec<u8>, String> {
-    let mut raw_output = vec![0u8; stripped_input.len() * 3 / 4 + 32 + 1];
-    let mut raw_output_pointer = 0;
-    {
-        let mut block_it = stripped_input.as_len43_based_blocks();
-        while let Some(base62block) = block_it.next_() {
-            raw_output_pointer += base62_to_bin(base62block, &mut raw_output[raw_output_pointer..raw_output_pointer+32]);
-        }
-    }
-    raw_output.resize(raw_output_pointer, 0);
-    return Ok(raw_output);
-}
-
-pub struct Base62Blocks<'a> {
-    stripped : &'a[u8],
-    buff : [u8 ; 43],
-}
-
-trait To62BaseBlocks<'a> {
-    fn as_len43_based_blocks(&self) -> Base62Blocks;
-}
-
-impl<'a> To62BaseBlocks<'a> for &'a str {
-    fn as_len43_based_blocks(&self) -> Base62Blocks {
-        Base62Blocks {
-            stripped : &self.as_bytes(),
-            buff : [0;43]
-        }
-    }
-}
-
-impl<'a> Base62Blocks<'a> {
-    // iterator inferface will not comply with lifetimes
-    fn next_<'b>(&'b mut self) -> Option<&'b [u8]> {
-        let remaining = min(self.stripped.len(), 43);
-        if remaining == 0 {
-            return None
-        }
-        self.dealphabet_chunk(remaining);
-        self.stripped = &self.stripped[remaining..];
-        Some(&self.buff[0..remaining])
-    }
-
-    ///#[inline]
-    pub fn dealphabet(i : u8) -> u8 {
-        if i <= b'9' {
-            i - b'0'
-        } else if i <= b'Z' {
-            i - b'A' + 10
-        } else {
-            i - b'a' + 36
-        }
-    }
-
-    #[inline]
-    fn dealphabet_chunk(&mut self, len : usize) {
-        let chunk = &self.stripped[0..len];
-        for (c, b) in chunk.iter().zip(self.buff.iter_mut()) {
-            *b = Base62Blocks::dealphabet(*c);
-        }
-    }
-
-}
-
-pub fn base62_to_bin(base62 : &[u8], rawout : &mut[u8]) -> usize {
-    let i = unsafe {
-        Int::from_u8_be_radix_unchecked(base62, 62).unwrap()
-    };
-    i.write_big_endian_buffer(rawout).unwrap()
-}
-
-/// returns the number of bytes written into base62out
-pub fn bin_to_base62_alphabet(rawin : &[u8], mut base62out : &mut[u8]) -> usize {
-    assert!(rawin.len() <= 32);
-    assert!(base62out.len() >= 43);
-    let i = Int::from_big_endian_slice(rawin);
-    let written = 0;
-    i.write_radix_callback(62, |b| {
+/// This function armors one 32 byte block into 43 base62 characters.
+///
+/// It inserts spaces and newlines, as soon as the counters `space_in` and
+/// `newline_in` reach zero. It is intended that consecutive calls always
+/// get references to the same counters, so the inserted spaces are all
+/// equidistant.
+///
+/// If `full_32` is true, it will always output 43 characters right aligned,
+/// even if the 32 byte input can be represented with 42 characters.
+///
+/// Returns the number of bytes, that have been written into base62out.
+///
+/// Base62out must have place for `BUF_SIZE` characters, otherwise it will panic.
+pub fn b32bytes_to_base62_formatted(raw_in : &[u8],
+                               mut base62out : &mut [u8],
+                               space_in : &mut usize,
+                               newline_in : &mut usize,
+                               full_32 : bool) -> usize {
+    assert!(raw_in.len() <= 32);
+    assert!(base62out.len() >= BUF_SIZE);
+    assert!(*space_in > 0);
+    assert!(*newline_in > 0);
+    let i = Int::from_big_endian_slice(raw_in);
+    let mut written = 0;
+    let min_len = if full_32 { 43 } else { 0 };
+    i.write_radix_callback_minlen(62, min_len, |b| {
         unsafe {
+            //base62out.write(alphabet(b)).unwrap();
             *base62out.get_unchecked_mut(written) = alphabet(b);
+            written += 1;
+            *space_in -= 1;
+            if *space_in == 0 {
+                *space_in = SPACE_EVERY;
+                *newline_in -= 1;
+                if *newline_in == 0 {
+                    *newline_in = NEWLINE_EVERY;
+                    //base62out.write(alphabet(b'\n')).unwrap();
+                    *base62out.get_unchecked_mut(written) = b'\n';
+                    written += 1;
+                } else {
+                    //base62out.write(alphabet(b' ')).unwrap();
+                    *base62out.get_unchecked_mut(written) = b' ';
+                    written += 1;
+                }
+            }
         }
     });
+    assert!(BUF_SIZE >= written);
     written
 }
+
 
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    static ARMORED_1 : &'static str = "BEGIN SALTPACK SIGNED MESSAGE. kYM5h1pg6qz9UMn j6G7KB2OUX3itkn C30ZZBPzjc8STxf i06TIQhJ4wRFSMU hFa9gmcvl2AW8Kk qmTdLkkppPieOWq o9aWouAaMpQ9kWt eMlv17NOUUr9Gp3 fClo7khRnJ12T7j 6ZVkfDXUpznTp57 0btBywDV848jyp2 EceloYGiuOolWim 8HCx77p22iulWja ixShPFcOi1mkG2i 4Iur3QfGYeKpflx a1GXmvQLi1G99mH 625dH5HGcQ63pOb K1i7g3lXIQ9Kcfy NRDfdBIDMHJaJf1 uTKB4GJ9l4M7glS 07h9QsU4gPueyNC hzm6LmA9CFllzxy 8ZA0Ys5qDnSuwaN obowMNXpbm1nlsx fXFtMolx6ghLuEw 2s8f1jBxBQjQPwa GG90h5BbpoWGPk6 dRsou5kdNxcLaFJ KKXWTUR2h9P0P7p 9UYRsQ6QqGNiwmG wXC7YFh1xCUdAib gjZbUYUKN6KVLem hZI6XYtX2l1w8d5 jL8KJ5ZZpKhJ4JC faVWCU2VRtUFgQO ejKm6wjs6NcekTd KK4bOh5kr87cyRu 0aDjEtfMSyZZTG5 hIrEWcMq1Iotzrx iRdmY5GYf2Kx0Br 4K0rqrj8ZGa. END SALTPACK SIGNED MESSAGE.";
-
-    static STRIPPED_1 : &'static str = "BEGINSALTPACKSIGNEDMESSAGE.kYM5h1pg6qz9UMnj6G7KB2OUX3itknC30ZZBPzjc8STxfi06TIQhJ4wRFSMUhFa9gmcvl2AW8KkqmTdLkkppPieOWqo9aWouAaMpQ9kWteMlv17NOUUr9Gp3fClo7khRnJ12T7j6ZVkfDXUpznTp570btBywDV848jyp2EceloYGiuOolWim8HCx77p22iulWjaixShPFcOi1mkG2i4Iur3QfGYeKpflxa1GXmvQLi1G99mH625dH5HGcQ63pObK1i7g3lXIQ9KcfyNRDfdBIDMHJaJf1uTKB4GJ9l4M7glS07h9QsU4gPueyNChzm6LmA9CFllzxy8ZA0Ys5qDnSuwaNobowMNXpbm1nlsxfXFtMolx6ghLuEw2s8f1jBxBQjQPwaGG90h5BbpoWGPk6dRsou5kdNxcLaFJKKXWTUR2h9P0P7p9UYRsQ6QqGNiwmGwXC7YFh1xCUdAibgjZbUYUKN6KVLemhZI6XYtX2l1w8d5jL8KJ5ZZpKhJ4JCfaVWCU2VRtUFgQOejKm6wjs6NcekTdKK4bOh5kr87cyRu0aDjEtfMSyZZTG5hIrEWcMq1IotzrxiRdmY5GYf2Kx0Br4K0rqrj8ZGa.ENDSALTPACKSIGNEDMESSAGE.";
-
     static ALPHABET : &'static str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-    #[test]
-    fn find_header() {
-        let stripped = strip_whitespace(&ARMORED_1);
-        assert_eq!(stripped, STRIPPED_1);
-        let (inners, meta, range) = assert_and_strip_header_and_footer(&stripped).unwrap();
-        assert_eq!(meta.messagetype, SaltpackMessageType::SIGNEDMESSAGE);
-        assert_eq!(range, Range {start : 0, end : 664});
-        assert_eq!(*inners, STRIPPED_1[27..638]);
-        let rawdata = convert_to_bytes(&inners).unwrap();
-        assert_eq!(rawdata.len(), 454);
-    }
 
     #[test]
     fn alphabet_() {
         for (i, c) in (ALPHABET).as_bytes().iter().enumerate() {
-            assert_eq!(Base62Blocks::dealphabet(*c) as usize, i);
             assert_eq!(alphabet(i as u8), *c);
         }
+    }
+
+    #[test]
+    fn to_base62_with_spaces() {
+        let mut space_in = 3;
+        let mut newline_in = 3;
+        let data : [u8 ; 32] = [ 1, 2, 3, 4, 5, 6, 7, 8,
+                                 1, 2, 3, 4, 5, 6, 7, 8,
+                                 1, 2, 3, 4, 5, 6, 7, 8,
+                                 1, 2, 3, 4, 5, 6, 7, 8, ];
+        let mut out = vec![b'A' ; 150];
+        {
+            let mut out_slice = &mut out[..];
+            let written = b32bytes_to_base62_formatted(&data, &mut out_slice, &mut space_in, &mut newline_in, true);
+            let mut out_slice = &mut out_slice[written..];
+            let written = b32bytes_to_base62_formatted(&data, &mut out_slice, &mut space_in, &mut newline_in, true);
+            let mut out_slice = &mut out_slice[written..];
+            let written = b32bytes_to_base62_formatted(&data, &mut out_slice, &mut space_in, &mut newline_in, true);
+            let mut out_slice = &mut out_slice[written..];
+        }
+        unsafe {
+            let S = String::from_utf8_unchecked(out);
+            assert!(S == "0Eo h211G4c8rWQ68g6 VHwCdRQSckQE9h6\nk6REalLOem0Eoh2 11G4c8rWQ68g6VH wCdRQSckQE9h6k6 REalLOem0Eoh211 G4c8rWQ68g6VHwC dRQSckQE9h6k6RE alLOemAAAAAAAAAAAA");
+        }
+    }
+
+    #[test]
+    fn armoring_stream() {
+        let data : [u8 ; 32] = [ 1, 2, 3, 4, 5, 6, 7, 8,
+                                 1, 2, 3, 4, 5, 6, 7, 8,
+                                 1, 2, 3, 4, 5, 6, 7, 8,
+                                 1, 2, 3, 4, 5, 6, 7, 8, ];
+        let mut AS = ArmoringStream::new("RUST".to_string(), SaltpackMessageType::ENCRYPTEDMESSAGE);
+        let len = AS.predict_armored_len(data.len());
+        let mut out = vec![0u8; len];
+        let (read, written, ready) = AS.armor(&data[..], true, &mut out[..]).unwrap();
+        out.resize(written, 0);
+        let S = unsafe { String::from_utf8_unchecked(out) };
+        assert!(ready);
+        assert_eq!(read, data.len());
+        assert_eq!(written, len);
+        assert_eq!(S, "BEGIN RUST SALTPACK ENCRYPTEDMESSAGE. 0Eoh211G4c8rWQ6 8g6VHwCdRQSckQE 9h6k6REalLOem. END RUST SALTPACK ENCRYPTEDMESSAGE.");
     }
 
 }
