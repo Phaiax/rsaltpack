@@ -3,7 +3,7 @@ use regex::Regex;
 use ramp::Int;
 use std::cmp::min;
 use std::vec::Vec;
-use std::io::{Read, Write};
+use std::io::Read;
 pub use std::ops::Range;
 pub use ::SaltpackMessageType;
 

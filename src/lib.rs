@@ -4,13 +4,13 @@
 #![plugin(regex_macros)]
 
 extern crate serde;
-extern crate serde_json;
 extern crate ramp;
 extern crate byteorder;
 extern crate alloc;
 extern crate regex;
 extern crate rmp;
 extern crate sodiumoxide;
+extern crate rmp_serde;
 extern crate rmp_serialize;
 extern crate rustc_serialize;
 extern crate test;
@@ -73,7 +73,5 @@ impl ToString for SaltpackMessageType {
 
 #[cfg(test)]
 mod tests {
-
-    use super::*;
 
 }

@@ -4,10 +4,10 @@ version = "0.1.0"
 authors = ["Phaiax <phaiax-rsaltpack@invisibletower.de>"]
 
 [dependencies]
-serde = "*"
-serde_json = "*"
-serde_macros = "*"
+serde = "^0.6"
+serde_macros = "^0.6"
 rmp = "*"
+rmp-serde = "*"
 rmp-serialize = "*"
 rustc-serialize = "*"
 ramp = { path = "crates/ramp" }

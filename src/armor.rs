@@ -1,9 +1,6 @@
 
-use regex::Regex;
 use ramp::Int;
-use std::cmp::min;
-use std::vec::Vec;
-use std::io::{Read, Write};
+use std::io::Write;
 pub use std::ops::Range;
 pub use ::SaltpackMessageType;
 use util::Consumable;
@@ -14,13 +11,13 @@ use util::Consumable;
 pub fn armor(binary_in : &mut [u8],
              vendorstring: &str,
              messagetype: SaltpackMessageType)
-             -> String {
-    let mut AS = ArmoringStream::new(vendorstring.to_string(), messagetype);
-    let mut out = vec![0u8; AS.predict_armored_len(binary_in.len())];
-    let (_, written, ready) = AS.armor(&binary_in[..], true, &mut out[..]).unwrap();
+             -> Result<String, String> {
+    let mut armoring_stream = try!(ArmoringStream::new(vendorstring, messagetype));
+    let mut out = vec![0u8; armoring_stream.predict_armored_len(binary_in.len())];
+    let (_, written) = armoring_stream.armor(&binary_in[..], true, &mut out[..]).unwrap();
     out.resize(written, 0);
-    assert!(ready);
-    unsafe { String::from_utf8_unchecked(out) }
+    assert!(armoring_stream.is_done());
+    Ok(unsafe { String::from_utf8_unchecked(out) })
 }
 
 /// Can be used as a streaming interface to armor large amounts of binary data.
@@ -55,15 +52,28 @@ const BUF_SIZE : usize = CHARS_PER_BLOCK + CHARS_PER_BLOCK / SPACE_EVERY + 1;
 impl ArmoringStream {
 
     /// Create a new streaming interface
-    pub fn new(vendorstring: String,
+    pub fn new(vendorstring: &str,
                messagetype: SaltpackMessageType)
-               -> ArmoringStream {
-        ArmoringStream {
+               -> Result<ArmoringStream, String> {
+        try!(ArmoringStream::valid_vendor(vendorstring));
+        Ok(ArmoringStream {
             state : ArmoringStreamState::AtHeader {pos : 0},
             buffer : [0u8 ; BUF_SIZE],
             header : format!("BEGIN {} SALTPACK {}. ", vendorstring, messagetype.to_string()),
             footer : format!(". END {} SALTPACK {}.", vendorstring, messagetype.to_string()),
+        })
+    }
+
+    fn valid_vendor(vendor : &str) -> Result<(), String> {
+        fn in_(c : char, first : char, last : char) -> bool {
+            first <= c && c <= last
         }
+        for c in vendor.chars() {
+            if ! (in_(c, 'a', 'z') || in_(c, 'A', 'Z') || in_(c, '0', '9')) {
+                return Err(format!("Invalid char {} in vendor string {}.", c, vendor));
+            }
+        }
+        Ok(())
     }
 
     /// Predicts the total length of armored data including header and footer.
@@ -80,18 +90,17 @@ impl ArmoringStream {
     /// If binary_in contains the last bytes that have to be written, set last_bytes to
     /// true. Then the footer will be written.
     ///
-    /// Returns the bytes read from `binary_in`, the bytes written to `armored_out`
-    /// and if the footer has been written completely.
+    /// Returns the bytes read from `binary_in`, the bytes written to `armored_out`.
+    /// Call `is_done()` to figure out if everything (incl. footer) has been written.
     pub fn armor(&mut self,
                  mut binary_in : &[u8],
                  last_bytes : bool,
                  mut armored_out : &mut[u8])
-                 -> Result<(usize, usize, bool), String> {
+                 -> Result<(usize, usize), String> {
 
         let binary_in_len = binary_in.len();
         let armored_out_len = armored_out.len();
         let mut next = false;
-        let mut ready = false;
 
         // Write as much header as possible.
         if let ArmoringStreamState::AtHeader{ref mut pos} = self.state {
@@ -100,13 +109,7 @@ impl ArmoringStream {
         };
 
         // Switch to state `AtData` if header is written.
-        if next {
-            self.state = ArmoringStreamState::AtData{space_in : SPACE_EVERY,
-                                                     newline_in : NEWLINE_EVERY,
-                                                     bufpos : 0,
-                                                     buflen : 0};
-            next = false;
-        }
+        self.next(&mut next);
 
         // Write as much armored data as possible.
         if let ArmoringStreamState::AtData{ref mut space_in,
@@ -161,12 +164,7 @@ impl ArmoringStream {
         }
 
         // Switch to state `AtFooter` if main data is written.
-        if next {
-            self.state = ArmoringStreamState::AtFooter{
-                pos : 0
-            };
-            next = false;
-        }
+        self.next(&mut next);
 
         // Write as much footer data as possible.
         if let ArmoringStreamState::AtFooter{ref mut pos} = self.state {
@@ -175,17 +173,45 @@ impl ArmoringStream {
         }
 
         // Switch to state `Finished` if footer is written.
-        if next {
-            self.state = ArmoringStreamState::Finished;
-        }
-
-        if ArmoringStreamState::Finished == self.state {
-            ready = true;
-        }
+        self.next(&mut next);
 
         Ok((binary_in_len   - binary_in.len() ,
-            armored_out_len - armored_out.len(),
-            ready))
+            armored_out_len - armored_out.len()))
+    }
+
+    /// Go to next state if `next` is true. Set `next` to false.
+    fn next(&mut self, next : &mut bool) {
+        if ! *next { return }
+        *next = false;
+        self.state = match self.state {
+            ArmoringStreamState::AtHeader{pos : _} => {
+                ArmoringStreamState::AtData{space_in : SPACE_EVERY,
+                                                     newline_in : NEWLINE_EVERY,
+                                                     bufpos : 0,
+                                                     buflen : 0}
+            },
+            ArmoringStreamState::AtData{buflen : _, bufpos : _, newline_in : _, space_in : _} => {
+                ArmoringStreamState::AtFooter{
+                    pos : 0
+                }
+            },
+            ArmoringStreamState::AtFooter{pos: _} => {
+                ArmoringStreamState::Finished
+            },
+            ArmoringStreamState::Finished => {
+               ArmoringStreamState::Finished
+            }
+        };
+    }
+
+    /// Returns `true` if header, data and footer have been written completely.
+    pub fn is_done(&self) -> bool {
+        self.state == ArmoringStreamState::Finished
+    }
+
+    /// Stops writing and reading anything. `is_done` will be `true`.
+    pub fn cancel(&mut self) {
+        self.state = ArmoringStreamState::Finished;
     }
 
 }
@@ -226,7 +252,7 @@ pub fn alphabet(i : u8) -> u8 {
 ///
 /// Base62out must have place for `BUF_SIZE` characters, otherwise it will panic.
 pub fn b32bytes_to_base62_formatted(raw_in : &[u8],
-                               mut base62out : &mut [u8],
+                               base62out : &mut [u8],
                                space_in : &mut usize,
                                newline_in : &mut usize,
                                full_32 : bool) -> usize {
@@ -294,12 +320,11 @@ mod tests {
             let mut out_slice = &mut out_slice[written..];
             let written = b32bytes_to_base62_formatted(&data, &mut out_slice, &mut space_in, &mut newline_in, true);
             let mut out_slice = &mut out_slice[written..];
-            let written = b32bytes_to_base62_formatted(&data, &mut out_slice, &mut space_in, &mut newline_in, true);
-            let mut out_slice = &mut out_slice[written..];
+            b32bytes_to_base62_formatted(&data, &mut out_slice, &mut space_in, &mut newline_in, true);
         }
         unsafe {
-            let S = String::from_utf8_unchecked(out);
-            assert!(S == "0Eo h211G4c8rWQ68g6 VHwCdRQSckQE9h6\nk6REalLOem0Eoh2 11G4c8rWQ68g6VH wCdRQSckQE9h6k6 REalLOem0Eoh211 G4c8rWQ68g6VHwC dRQSckQE9h6k6RE alLOemAAAAAAAAAAAA");
+            let s = String::from_utf8_unchecked(out);
+            assert!(s == "0Eo h211G4c8rWQ68g6 VHwCdRQSckQE9h6\nk6REalLOem0Eoh2 11G4c8rWQ68g6VH wCdRQSckQE9h6k6 REalLOem0Eoh211 G4c8rWQ68g6VHwC dRQSckQE9h6k6RE alLOemAAAAAAAAAAAA");
         }
     }
 
@@ -309,16 +334,16 @@ mod tests {
                                  1, 2, 3, 4, 5, 6, 7, 8,
                                  1, 2, 3, 4, 5, 6, 7, 8,
                                  1, 2, 3, 4, 5, 6, 7, 8, ];
-        let mut AS = ArmoringStream::new("RUST".to_string(), SaltpackMessageType::ENCRYPTEDMESSAGE);
-        let len = AS.predict_armored_len(data.len());
+        let mut armoring_stream = ArmoringStream::new("RUST", SaltpackMessageType::ENCRYPTEDMESSAGE).unwrap();
+        let len = armoring_stream.predict_armored_len(data.len());
         let mut out = vec![0u8; len];
-        let (read, written, ready) = AS.armor(&data[..], true, &mut out[..]).unwrap();
+        let (read, written) = armoring_stream.armor(&data[..], true, &mut out[..]).unwrap();
         out.resize(written, 0);
-        let S = unsafe { String::from_utf8_unchecked(out) };
-        assert!(ready);
+        let s = unsafe { String::from_utf8_unchecked(out) };
+        assert!(armoring_stream.is_done());
         assert_eq!(read, data.len());
         assert_eq!(written, len);
-        assert_eq!(S, "BEGIN RUST SALTPACK ENCRYPTEDMESSAGE. 0Eoh211G4c8rWQ6 8g6VHwCdRQSckQE 9h6k6REalLOem. END RUST SALTPACK ENCRYPTEDMESSAGE.");
+        assert_eq!(s, "BEGIN RUST SALTPACK ENCRYPTEDMESSAGE. 0Eoh211G4c8rWQ6 8g6VHwCdRQSckQE 9h6k6REalLOem. END RUST SALTPACK ENCRYPTEDMESSAGE.");
     }
 
 }
