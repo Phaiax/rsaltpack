@@ -521,15 +521,145 @@
 <span id="478">478</span>
 <span id="479">479</span>
 <span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
+<span id="503">503</span>
+<span id="504">504</span>
+<span id="505">505</span>
+<span id="506">506</span>
+<span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
+<span id="510">510</span>
+<span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
+<span id="514">514</span>
+<span id="515">515</span>
+<span id="516">516</span>
+<span id="517">517</span>
+<span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
+<span id="522">522</span>
+<span id="523">523</span>
+<span id="524">524</span>
+<span id="525">525</span>
+<span id="526">526</span>
+<span id="527">527</span>
+<span id="528">528</span>
+<span id="529">529</span>
+<span id="530">530</span>
+<span id="531">531</span>
+<span id="532">532</span>
+<span id="533">533</span>
+<span id="534">534</span>
+<span id="535">535</span>
+<span id="536">536</span>
+<span id="537">537</span>
+<span id="538">538</span>
+<span id="539">539</span>
+<span id="540">540</span>
+<span id="541">541</span>
+<span id="542">542</span>
+<span id="543">543</span>
+<span id="544">544</span>
+<span id="545">545</span>
+<span id="546">546</span>
+<span id="547">547</span>
+<span id="548">548</span>
+<span id="549">549</span>
+<span id="550">550</span>
+<span id="551">551</span>
+<span id="552">552</span>
+<span id="553">553</span>
+<span id="554">554</span>
+<span id="555">555</span>
+<span id="556">556</span>
+<span id="557">557</span>
+<span id="558">558</span>
+<span id="559">559</span>
+<span id="560">560</span>
+<span id="561">561</span>
+<span id="562">562</span>
+<span id="563">563</span>
+<span id="564">564</span>
+<span id="565">565</span>
+<span id="566">566</span>
+<span id="567">567</span>
+<span id="568">568</span>
+<span id="569">569</span>
+<span id="570">570</span>
+<span id="571">571</span>
+<span id="572">572</span>
+<span id="573">573</span>
+<span id="574">574</span>
+<span id="575">575</span>
+<span id="576">576</span>
+<span id="577">577</span>
+<span id="578">578</span>
+<span id="579">579</span>
+<span id="580">580</span>
+<span id="581">581</span>
+<span id="582">582</span>
+<span id="583">583</span>
+<span id="584">584</span>
+<span id="585">585</span>
+<span id="586">586</span>
+<span id="587">587</span>
+<span id="588">588</span>
+<span id="589">589</span>
+<span id="590">590</span>
+<span id="591">591</span>
+<span id="592">592</span>
+<span id="593">593</span>
+<span id="594">594</span>
+<span id="595">595</span>
+<span id="596">596</span>
+<span id="597">597</span>
+<span id="598">598</span>
+<span id="599">599</span>
+<span id="600">600</span>
+<span id="601">601</span>
+<span id="602">602</span>
+<span id="603">603</span>
+<span id="604">604</span>
+<span id="605">605</span>
+<span id="606">606</span>
+<span id="607">607</span>
+<span id="608">608</span>
 </pre><pre class='rust '>
 <span class='doccomment'>//! Asymmetrically encrypt or sign data for multiple recipients using the saltpack format.</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! # Usage</span>
 <span class='doccomment'>//! ```</span>
-<span class='doccomment'>//! let mut recipients = vec![KeyPair::gen().p];</span>
+<span class='doccomment'>//! use rsaltpack::KeyPair;</span>
+<span class='doccomment'>//! use rsaltpack::compose::Saltpack;</span>
+<span class='doccomment'>//! let recipients = vec![KeyPair::gen().p];</span>
 <span class='doccomment'>//!</span>
-<span class='doccomment'>//! let data : [u8] = b&quot;If I put a usb stick into my ass, \</span>
-<span class='doccomment'>//!                     does it make me a cyborg already?&quot;</span>
+<span class='doccomment'>//! let data = b&quot;If I put a usb stick into my ass, \</span>
+<span class='doccomment'>//!                     does it make me a cyborg already?&quot;;</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! // using None as first parameter for anonymous sender</span>
 <span class='doccomment'>//! let mut saltpack = Saltpack::encrypt(None, &amp;recipients);</span>
@@ -539,10 +669,10 @@
 <span class='doccomment'>//! saltpack.flush().unwrap();</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! use std::io::Read;</span>
-<span class='doccomment'>//! let encrypted = vec![u8; 0]; // totally binary data</span>
-<span class='doccomment'>//! saltpack.read_to_end(encrypted).unwrap();</span>
+<span class='doccomment'>//! let mut encrypted = vec![0u8; 0]; // totally binary data</span>
+<span class='doccomment'>//! saltpack.read_to_end(&amp;mut encrypted).unwrap();</span>
 <span class='doccomment'>//!</span>
-<span class='doccomment'>//! # assert!(saltpack.all_written()); // optional</span>
+<span class='doccomment'>//! # assert!(saltpack.is_done()); // optional</span>
 <span class='doccomment'>//! assert!(encrypted.len() &gt; 100);</span>
 <span class='doccomment'>//! ```</span>
 <span class='doccomment'>//!</span>
@@ -551,36 +681,41 @@
 <span class='doccomment'>//! will occur. Also read all data, otherwise a panic will occur.</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! ```</span>
-<span class='doccomment'>//! # let mut recipients = vec![KeyPair::gen().p];</span>
-<span class='doccomment'>//! # let data : [u8] = [12; 1000000]</span>
+<span class='doccomment'>//! # use rsaltpack::KeyPair;</span>
+<span class='doccomment'>//! # use rsaltpack::compose::Saltpack;</span>
+<span class='doccomment'>//! # let recipients = vec![KeyPair::gen().p];</span>
+<span class='doccomment'>//! # let data = [12u8; 1000000];</span>
 <span class='doccomment'>//! # // using None as first parameter for anonymous sender</span>
 <span class='doccomment'>//! # let mut saltpack = Saltpack::encrypt(None, &amp;recipients);</span>
 <span class='doccomment'>//! use std::io::Write;</span>
 <span class='doccomment'>//! use std::io::Read;</span>
-<span class='doccomment'>//! let encrypted = vec![u8; 0];</span>
+<span class='doccomment'>//! let mut encrypted = vec![0u8; 0];</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! saltpack.write_all(&amp;data[0..500_000]).unwrap(); // only half chunk</span>
-<span class='doccomment'>//! saltpack.read_to_end(encrypted).unwrap();</span>
-<span class='doccomment'>//! assert_eq!(encrypted.len() &lt; 1000); // only header written</span>
+<span class='doccomment'>//! saltpack.read_to_end(&amp;mut encrypted).unwrap();</span>
+<span class='doccomment'>//! assert!(encrypted.len() &lt; 1000); // only header written</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! saltpack.write_all(&amp;data[0..1_000_000]).unwrap();</span>
-<span class='doccomment'>//! saltpack.read_to_end(encrypted).unwrap();</span>
-<span class='doccomment'>//! assert!(1_000_000 &lt; encrypted.len() &lt; 1_001_000); // 1 chunk written</span>
+<span class='doccomment'>//! saltpack.read_to_end(&amp;mut encrypted).unwrap();</span>
+<span class='doccomment'>//! assert!(1_000_000 &lt; encrypted.len() &amp;&amp; encrypted.len() &lt; 1_005_000); // 1 chunk written</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! saltpack.flush().unwrap();</span>
-<span class='doccomment'>//! saltpack.read_to_end(encrypted).unwrap();</span>
-<span class='doccomment'>//! assert!(1_500_000 &lt; encrypted.len() &lt; 1_501_000); // 1.5 chunks written</span>
-<span class='doccomment'>//! # assert!(saltpack.all_written()); // optional</span>
+<span class='doccomment'>//! saltpack.read_to_end(&amp;mut encrypted).unwrap();</span>
+<span class='doccomment'>//! assert!(1_500_000 &lt; encrypted.len() &amp;&amp; encrypted.len() &lt; 1_501_000); // 1.5 chunks written</span>
+<span class='doccomment'>//! # assert!(saltpack.is_done()); // optional</span>
 <span class='doccomment'>//! ```</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! # ASCII armor (only a-z A-Z 0-9 and .)</span>
 <span class='doccomment'>//!</span>
 <span class='doccomment'>//! ```</span>
+<span class='doccomment'>//! # use rsaltpack::KeyPair;</span>
+<span class='doccomment'>//! # use rsaltpack::compose::Saltpack;</span>
 <span class='doccomment'>//! let mut saltpack = Saltpack::encrypt(None, &amp; vec![KeyPair::gen().p]);</span>
 <span class='doccomment'>//! use std::io::Write;</span>
-<span class='doccomment'>//! saltpack.write_all(&amp;b&quot;secretData&quot;).unwrap();</span>
-<span class='doccomment'>//! saltpack.flush();</span>
-<span class='doccomment'>//! let mut armored = saltpack.armor(&quot;&quot;);</span>
+<span class='doccomment'>//! saltpack.write_all(b&quot;secretData&quot;).unwrap();</span>
+<span class='doccomment'>//! saltpack.flush().unwrap();</span>
+<span class='doccomment'>//!</span>
+<span class='doccomment'>//! let mut armored = saltpack.armor(&quot;&quot;).unwrap();</span>
 <span class='doccomment'>//! println!(&quot;{}&quot;, armored.to_string()); // read all</span>
 <span class='doccomment'>//! // or use std::io::Read on armored to get ascii character as binary string.</span>
 <span class='doccomment'>//! ```</span>
@@ -595,23 +730,30 @@
 <span class='kw'>use</span> <span class='ident'>sodiumoxide</span>::<span class='ident'>crypto</span>::<span class='ident'>auth</span>;
 <span class='kw'>use</span> <span class='ident'>rustc_serialize</span>::<span class='ident'>Encodable</span>;
 <span class='kw'>use</span> <span class='ident'>rmp_serialize</span>::<span class='ident'>Encoder</span>;
+
+<span class='kw'>use</span> <span class='ident'>serde</span>::<span class='ident'>Serialize</span>;
+<span class='kw'>use</span> <span class='ident'>serde</span>::<span class='ident'>bytes</span>::<span class='ident'>ByteBuf</span>;
+<span class='kw'>use</span> <span class='ident'>rmp_serde</span>::<span class='ident'>Serializer</span>;
+
+<span class='kw'>use</span> ::<span class='ident'>armor</span>;
+
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>mem</span>::<span class='ident'>size_of</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::{<span class='ident'>Read</span>, <span class='ident'>Write</span>};
 <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>collections</span>::<span class='ident'>VecDeque</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>string</span>::<span class='ident'>ToString</span>;
 <span class='kw'>use</span> <span class='ident'>std</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>;
 
 
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>RustcEncodable</span>, <span class='ident'>RustcDecodable</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Debug</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>RustcEncodable</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>struct</span> <span class='ident'>RecipSerializable</span>(<span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>, <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>);
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>RustcEncodable</span>, <span class='ident'>RustcDecodable</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Debug</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>RustcEncodable</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>struct</span> <span class='ident'>HeaderSerializable</span>(<span class='ident'>String</span>, (<span class='ident'>u32</span>, <span class='ident'>u32</span>), <span class='ident'>u32</span>, <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>, <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>, <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>RecipSerializable</span><span class='op'>&gt;</span>);
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>RustcEncodable</span>, <span class='ident'>RustcDecodable</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Debug</span>)]</span>
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>RustcEncodable</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Debug</span>)]</span>
 <span class='kw'>struct</span> <span class='ident'>HeaderOuterSerializable</span>(<span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>);
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>RustcEncodable</span>, <span class='ident'>RustcDecodable</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Debug</span>)]</span>
-<span class='kw'>struct</span> <span class='ident'>PayloadPacketSerializable</span> (<span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Authenticator</span><span class='op'>&gt;</span>, <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>);
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>RustcEncodable</span>, <span class='ident'>RustcDecodable</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Debug</span>)]</span>
-<span class='kw'>struct</span> <span class='ident'>Authenticator</span>(<span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>);
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Serialize</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Debug</span>)]</span>
+<span class='kw'>struct</span> <span class='ident'>PayloadPacketSerializable</span> (<span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Authenticator</span><span class='op'>&gt;</span>, <span class='ident'>ByteBuf</span>);
+<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Serialize</span>, <span class='ident'>PartialEq</span>, <span class='ident'>Debug</span>)]</span>
+<span class='kw'>struct</span> <span class='ident'>Authenticator</span>(<span class='ident'>ByteBuf</span>);
 
 <span class='kw'>use</span> ::{<span class='ident'>Key</span>, <span class='ident'>PublicKey</span>, <span class='ident'>KeyPair</span>, <span class='ident'>SaltpackMessageType</span>, <span class='ident'>CBNonce</span>, <span class='ident'>SBNonce</span>};
 
@@ -624,13 +766,8 @@
     <span class='ident'>input_buffer</span> : <span class='ident'>VecDeque</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span>,
     <span class='ident'>flushed</span> : <span class='ident'>bool</span>,
 
-    <span class='ident'>bytes_read_from_first</span> : <span class='ident'>usize</span>,
+    <span class='ident'>bytes_read_from_first_output_buffer_element</span> : <span class='ident'>usize</span>,
     <span class='ident'>output_buffer</span> : <span class='ident'>VecDeque</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;&gt;</span>,
-}
-
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ArmoredSaltpack</span> {
-    <span class='ident'>saltpack</span> : <span class='ident'>Saltpack</span>,
-    <span class='ident'>vendor</span> : <span class='ident'>String</span>
 }
 
 <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>encrypt_to_binary</span>(<span class='ident'>sender</span> : <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='ident'>KeyPair</span><span class='op'>&gt;</span>,
@@ -671,7 +808,7 @@
             <span class='ident'>flushed</span> : <span class='boolval'>false</span>,
 
             <span class='ident'>output_buffer</span> : <span class='ident'>VecDeque</span>::<span class='ident'>with_capacity</span>(<span class='number'>10</span>),
-            <span class='ident'>bytes_read_from_first</span> : <span class='number'>0</span>,
+            <span class='ident'>bytes_read_from_first_output_buffer_element</span> : <span class='number'>0</span>,
         };
 
         <span class='ident'>new_saltpack</span>.<span class='ident'>compose_saltpack_header</span>(<span class='kw-2'>&amp;</span><span class='ident'>sender</span>, <span class='kw-2'>&amp;</span><span class='ident'>recipients</span>, <span class='kw-2'>&amp;</span><span class='ident'>eph_key</span>);
@@ -691,6 +828,10 @@
         <span class='self'>self</span>.<span class='ident'>flushed</span> <span class='op'>&amp;&amp;</span> <span class='self'>self</span>.<span class='ident'>input_buffer</span>.<span class='ident'>is_empty</span>() <span class='op'>&amp;&amp;</span> <span class='self'>self</span>.<span class='ident'>output_buffer</span>.<span class='ident'>is_empty</span>()
     }
 
+    <span class='kw'>fn</span> <span class='ident'>last_bytes</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='self'>self</span>.<span class='ident'>flushed</span> <span class='op'>&amp;&amp;</span> <span class='self'>self</span>.<span class='ident'>output_buffer</span>.<span class='ident'>len</span>() <span class='op'>&lt;=</span> <span class='number'>1</span> <span class='op'>&amp;&amp;</span> <span class='self'>self</span>.<span class='ident'>input_buffer</span>.<span class='ident'>is_empty</span>()
+    }
+
     <span class='doccomment'>/// Consumes self and returns an `ArmoredSaltpack` that outputs the armored</span>
     <span class='doccomment'>/// version of the encrypted data.</span>
     <span class='doccomment'>///</span>
@@ -702,21 +843,9 @@
     <span class='doccomment'>///</span>
     <span class='doccomment'>/// Returns Err if vendor contains chars other than `[a-zA-Z0-9]`.</span>
     <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>armor</span>(<span class='self'>self</span>, <span class='ident'>vendor</span> : <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>ArmoredSaltpack</span>, <span class='ident'>String</span><span class='op'>&gt;</span> {
-        <span class='kw'>fn</span> <span class='ident'>in_</span>(<span class='ident'>c</span> : <span class='ident'>char</span>, <span class='ident'>first</span> : <span class='ident'>char</span>, <span class='ident'>last</span> : <span class='ident'>char</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
-            <span class='ident'>first</span> <span class='op'>&lt;=</span> <span class='ident'>c</span> <span class='op'>&amp;&amp;</span> <span class='ident'>c</span> <span class='op'>&lt;=</span> <span class='ident'>last</span>
-        }
-        <span class='kw'>for</span> <span class='ident'>c</span> <span class='kw'>in</span> <span class='ident'>vendor</span>.<span class='ident'>chars</span>() {
-            <span class='kw'>if</span> <span class='op'>!</span> (<span class='ident'>in_</span>(<span class='ident'>c</span>, <span class='string'>&#39;a&#39;</span>, <span class='string'>&#39;z&#39;</span>) <span class='op'>||</span> <span class='ident'>in_</span>(<span class='ident'>c</span>, <span class='string'>&#39;A&#39;</span>, <span class='string'>&#39;Z&#39;</span>) <span class='op'>||</span> <span class='ident'>in_</span>(<span class='ident'>c</span>, <span class='string'>&#39;0&#39;</span>, <span class='string'>&#39;9&#39;</span>)) {
-                <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;Invalid char {} in vendor string {}.&quot;</span>, <span class='ident'>c</span>, <span class='ident'>vendor</span>));
-            }
-        }
-        <span class='prelude-val'>Ok</span>(<span class='ident'>ArmoredSaltpack</span> {
-            <span class='ident'>saltpack</span> : <span class='self'>self</span>,
-            <span class='ident'>vendor</span> : <span class='ident'>vendor</span>.<span class='ident'>to_string</span>()
-        })
+        <span class='ident'>ArmoredSaltpack</span>::<span class='ident'>new</span>(<span class='self'>self</span>, <span class='ident'>vendor</span>)
     }
 
-    <span class='doccomment'>/// returns macs</span>
     <span class='kw'>fn</span> <span class='ident'>compose_saltpack_header</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
                                <span class='ident'>sender</span> : <span class='kw-2'>&amp;</span><span class='ident'>KeyPair</span>,
                                <span class='ident'>recipients</span> : <span class='kw-2'>&amp;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>PublicKey</span><span class='op'>&gt;</span>,
@@ -805,7 +934,7 @@
         <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>input_buffer</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='number'>0</span> {
             <span class='kw'>return</span> <span class='boolval'>false</span>;
         }
-        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;Encr START&quot;</span>);
+        <span class='comment'>//$ println!(&quot;Encr START&quot;);</span>
 
         <span class='kw'>let</span> <span class='ident'>next</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>input_buffer</span>.<span class='ident'>pop_front</span>().<span class='ident'>unwrap</span>();
         <span class='kw'>let</span> <span class='ident'>payload</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>next</span>[..];
@@ -814,12 +943,11 @@
         <span class='self'>self</span>.<span class='ident'>next_packet_number</span> <span class='op'>+=</span> <span class='number'>1</span>;
 
         <span class='comment'>// The payload secretbox is a NaCl secretbox containing a chunk of the plaintext bytes, max size 1 MB. It&#39;s encrypted with the payload key.</span>
-        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;   Secretbox BEGIN&quot;</span>);
+        <span class='comment'>//$ println!(&quot;   Secretbox BEGIN&quot;);</span>
         <span class='kw'>let</span> <span class='ident'>secretbox_payload</span> <span class='op'>=</span> <span class='ident'>secretbox</span>::<span class='ident'>seal</span>(<span class='comment'>/*msg*/</span><span class='kw-2'>&amp;</span><span class='ident'>payload</span>[..],
                                                  <span class='comment'>/*nonce*/</span><span class='kw-2'>&amp;</span><span class='ident'>nonce</span>,
                                                  <span class='comment'>/*key*/</span><span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>payload_key</span>.<span class='ident'>as_ref</span>().<span class='ident'>unwrap</span>());
-        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;   Secretbox END&quot;</span>);
-
+        <span class='comment'>//$ println!(&quot;   Secretbox END&quot;);</span>
 
 
         <span class='comment'>// 1 Concatenate the header hash, the nonce for the payload secretbox, and the payload secretbox itself.</span>
@@ -832,34 +960,53 @@
         <span class='ident'>cat</span>.<span class='ident'>extend_from_slice</span>(<span class='kw-2'>&amp;</span><span class='ident'>secretbox_payload</span>[..]);
 
         <span class='comment'>// 2 Compute the crypto_hash (SHA512) of the bytes from #1.</span>
-        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;     Hash BEGIN&quot;</span>);
-        <span class='kw'>let</span> <span class='ident'>headerhash</span> <span class='op'>=</span> <span class='ident'>hash</span>(<span class='kw-2'>&amp;</span><span class='ident'>cat</span>[..]);
-        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;     Hash END&quot;</span>);
+        <span class='comment'>//$ println!(&quot;     Hash BEGIN&quot;);</span>
+        <span class='kw'>let</span> <span class='ident'>packethash</span> <span class='op'>=</span> <span class='ident'>hash</span>(<span class='kw-2'>&amp;</span><span class='ident'>cat</span>[..]);
+        <span class='comment'>//$ println!(&quot;     Hash END&quot;);</span>
 
         <span class='comment'>// 3 For each recipient, compute the crypto_auth (HMAC-SHA512, truncated to 32 bytes) of the hash from #2, using that recipient&#39;s MAC key.</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>authenticators</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>new</span>();
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>bufsize</span> <span class='op'>=</span> <span class='ident'>secretbox_payload</span>.<span class='ident'>len</span>() <span class='op'>+</span> <span class='number'>12</span>;
-        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;       Auth BEGIN&quot;</span>);
+        <span class='comment'>//$ println!(&quot;       Auth BEGIN&quot;);</span>
         <span class='kw'>for</span> <span class='ident'>mac</span> <span class='kw'>in</span> <span class='self'>self</span>.<span class='ident'>macs</span>.<span class='ident'>iter</span>() {
-            <span class='kw'>let</span> <span class='ident'>tag</span> <span class='op'>=</span> <span class='ident'>auth</span>::<span class='ident'>authenticate</span>(<span class='kw-2'>&amp;</span><span class='ident'>headerhash</span>.<span class='number'>0</span>, <span class='kw-2'>&amp;</span><span class='ident'>mac</span>);
+            <span class='kw'>let</span> <span class='ident'>tag</span> <span class='op'>=</span> <span class='ident'>auth</span>::<span class='ident'>authenticate</span>(<span class='kw-2'>&amp;</span><span class='ident'>packethash</span>.<span class='number'>0</span>, <span class='kw-2'>&amp;</span><span class='ident'>mac</span>);
             <span class='ident'>bufsize</span> <span class='op'>+=</span> <span class='ident'>tag</span>.<span class='number'>0</span>.<span class='ident'>len</span>() <span class='op'>+</span> <span class='number'>2</span>;
-            <span class='ident'>authenticators</span>.<span class='ident'>push</span>(<span class='ident'>Authenticator</span>(<span class='ident'>Vec</span>::<span class='ident'>from</span>(<span class='kw-2'>&amp;</span><span class='ident'>tag</span>.<span class='number'>0</span>[..])));
+            <span class='ident'>authenticators</span>.<span class='ident'>push</span>(<span class='ident'>Authenticator</span>(<span class='ident'>ByteBuf</span>::<span class='ident'>from</span>(<span class='ident'>Vec</span>::<span class='ident'>from</span>(<span class='kw-2'>&amp;</span><span class='ident'>tag</span>.<span class='number'>0</span>[..]))));
         }
-        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;       Auth END&quot;</span>);
+
+        <span class='comment'>//$ println!(&quot;       Auth END&quot;);</span>
 
         <span class='comment'>// Compose Packet</span>
         <span class='kw'>let</span> <span class='ident'>packet</span> <span class='op'>=</span> <span class='ident'>PayloadPacketSerializable</span> (
             <span class='ident'>authenticators</span>,
-            <span class='ident'>secretbox_payload</span>,
+            <span class='ident'>ByteBuf</span>::<span class='ident'>from</span>(<span class='ident'>secretbox_payload</span>),
         );
-        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;          Encode BEGIN&quot;</span>);
+
+        <span class='comment'>//$ println!(&quot;          Encode BEGIN&quot;);</span>
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>packet_messagepacked</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>::<span class='ident'>with_capacity</span>(<span class='ident'>bufsize</span>);
-        <span class='ident'>packet</span>.<span class='ident'>encode</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Encoder</span>::<span class='ident'>new</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>packet_messagepacked</span>)).<span class='ident'>unwrap</span>();
-        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;          Encode END&quot;</span>);
+        <span class='comment'>//packet.encode(&amp;mut Encoder::new(&amp;mut packet_messagepacked)).unwrap();</span>
+
+        <span class='ident'>packet</span>.<span class='ident'>serialize</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>Serializer</span>::<span class='ident'>new</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>packet_messagepacked</span>)).<span class='ident'>unwrap</span>();
+        <span class='comment'>//$ println!(&quot;          Encode END&quot;);</span>
 
         <span class='self'>self</span>.<span class='ident'>output_buffer</span>.<span class='ident'>push_back</span>(<span class='ident'>packet_messagepacked</span>);
-        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;              Encr END&quot;</span>);
+        <span class='comment'>//$ println!(&quot;              Encr END&quot;);</span>
         <span class='boolval'>true</span>
+    }
+
+    <span class='doccomment'>/// Tries to predict the length of all unwritten data.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>predict_len</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='number'>0</span>;
+        <span class='kw'>let</span> <span class='ident'>secretbox_add</span> <span class='op'>=</span> <span class='number'>16</span>; <span class='comment'>// Todo: change to secretbox::MACBYTES if sodiumoxide releases</span>
+        <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>input_buffer</span> {
+            <span class='ident'>len</span> <span class='op'>+=</span> (<span class='ident'>auth</span>::<span class='ident'>TAGBYTES</span> <span class='op'>+</span> <span class='number'>2</span>) <span class='op'>*</span> <span class='self'>self</span>.<span class='ident'>macs</span>.<span class='ident'>len</span>(); <span class='comment'>// incl 2 msgpack marker bytes</span>
+            <span class='ident'>len</span> <span class='op'>+=</span> <span class='ident'>i</span>.<span class='ident'>len</span>() <span class='op'>+</span> <span class='ident'>secretbox_add</span> <span class='op'>+</span> <span class='number'>5</span>; <span class='comment'>// incl max 5 msgpack marker bytes</span>
+            <span class='ident'>len</span> <span class='op'>+=</span> <span class='number'>20</span>; <span class='comment'>// for PayloadPacketSerializable struct, with security margin</span>
+        }
+        <span class='kw'>for</span> <span class='ident'>i</span> <span class='kw'>in</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>output_buffer</span> { <span class='comment'>// btw: header is already in output_buffer</span>
+            <span class='ident'>len</span> <span class='op'>+=</span> <span class='ident'>i</span>.<span class='ident'>len</span>();
+        }
+        <span class='ident'>len</span>
     }
 
     <span class='doccomment'>/// The nonce is saltpack_ploadsbNNNNNNNN where NNNNNNNN is the packet numer</span>
@@ -880,6 +1027,11 @@
 <span class='doccomment'>/// Will panic if not flushed or not all data read.</span>
 <span class='kw'>impl</span> <span class='ident'>Drop</span> <span class='kw'>for</span> <span class='ident'>Saltpack</span> {
     <span class='kw'>fn</span> <span class='ident'>drop</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
+        <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>thread</span>::<span class='ident'>panicking</span>;
+        <span class='kw'>if</span> <span class='ident'>panicking</span>() {
+            <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;Saltpack not flushed or not read to end. Thread has paniced elsewhere.&quot;</span>);
+            <span class='kw'>return</span>;
+        }
         <span class='kw'>if</span> <span class='op'>!</span> <span class='self'>self</span>.<span class='ident'>is_done</span>() {
             <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;Saltpack not flushed or not read to end.&quot;</span>);
         }
@@ -908,8 +1060,10 @@
     }
 
     <span class='kw'>fn</span> <span class='ident'>flush</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
-        <span class='self'>self</span>.<span class='ident'>flushed</span> <span class='op'>=</span> <span class='boolval'>true</span>;
-        <span class='self'>self</span>.<span class='ident'>input_buffer</span>.<span class='ident'>push_back</span>(<span class='ident'>Vec</span>::<span class='ident'>new</span>()); <span class='comment'>// finish with empty packet</span>
+        <span class='kw'>if</span> <span class='op'>!</span> <span class='self'>self</span>.<span class='ident'>flushed</span> {
+            <span class='self'>self</span>.<span class='ident'>flushed</span> <span class='op'>=</span> <span class='boolval'>true</span>;
+            <span class='self'>self</span>.<span class='ident'>input_buffer</span>.<span class='ident'>push_back</span>(<span class='ident'>Vec</span>::<span class='ident'>new</span>()); <span class='comment'>// finish with empty packet</span>
+        }
 
         <span class='prelude-val'>Ok</span>(())
     }
@@ -918,22 +1072,19 @@
 <span class='doccomment'>/// Yields the encrypted data in chunks of 1MB. (or less if `flush()` has been called.)</span>
 <span class='kw'>impl</span> <span class='ident'>Read</span> <span class='kw'>for</span> <span class='ident'>Saltpack</span> {
     <span class='kw'>fn</span> <span class='ident'>read</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='kw-2'>mut</span> <span class='ident'>buffer</span>: <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>u8</span>]) <span class='op'>-&gt;</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span> {
-        <span class='ident'>io</span>::<span class='ident'>stdout</span>().<span class='ident'>flush</span>().<span class='ident'>ok</span>().<span class='ident'>expect</span>(<span class='string'>&quot;Could not flush stdout&quot;</span>);
-
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>bytes_read</span> <span class='op'>=</span> <span class='number'>0</span>;
         <span class='kw'>while</span> <span class='ident'>buffer</span>.<span class='ident'>len</span>() <span class='op'>&gt;</span> <span class='number'>0</span> { <span class='comment'>// still place to write</span>
             <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>output_buffer</span>.<span class='ident'>len</span>() <span class='op'>&gt;</span> <span class='number'>0</span> {
                 <span class='comment'>// write already encrypted to output</span>
-                <span class='kw'>let</span> <span class='ident'>br</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>bytes_read_from_first</span>;
                 <span class='kw'>let</span> <span class='ident'>written</span> <span class='op'>=</span> {
+                    <span class='kw'>let</span> <span class='ident'>br</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>bytes_read_from_first_output_buffer_element</span>;
                     <span class='kw'>let</span> <span class='ident'>front</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>output_buffer</span>.<span class='ident'>front</span>().<span class='ident'>unwrap</span>();
                     <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>buffer</span>.<span class='ident'>write</span>(<span class='kw-2'>&amp;</span><span class='ident'>front</span>[<span class='ident'>br</span>..]))
                 };
                 <span class='ident'>bytes_read</span> <span class='op'>+=</span> <span class='ident'>written</span>;
-                <span class='self'>self</span>.<span class='ident'>bytes_read_from_first</span> <span class='op'>+=</span> <span class='ident'>written</span>;
-
-                <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>output_buffer</span>.<span class='ident'>front</span>().<span class='ident'>unwrap</span>().<span class='ident'>len</span>() <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>bytes_read_from_first</span> {
-                    <span class='self'>self</span>.<span class='ident'>bytes_read_from_first</span> <span class='op'>=</span> <span class='number'>0</span>;
+                <span class='self'>self</span>.<span class='ident'>bytes_read_from_first_output_buffer_element</span> <span class='op'>+=</span> <span class='ident'>written</span>;
+                <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>output_buffer</span>.<span class='ident'>front</span>().<span class='ident'>unwrap</span>().<span class='ident'>len</span>() <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>bytes_read_from_first_output_buffer_element</span> {
+                    <span class='self'>self</span>.<span class='ident'>bytes_read_from_first_output_buffer_element</span> <span class='op'>=</span> <span class='number'>0</span>;
                     <span class='self'>self</span>.<span class='ident'>output_buffer</span>.<span class='ident'>pop_front</span>();
                 }
                 <span class='kw'>continue</span>; <span class='comment'>// write again from output buffer if not empty yet.</span>
@@ -942,6 +1093,98 @@
             }
         }
         <span class='prelude-val'>Ok</span>(<span class='ident'>bytes_read</span>)
+    }
+}
+
+
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ArmoredSaltpack</span> {
+    <span class='ident'>saltpack</span> : <span class='ident'>Saltpack</span>,
+    <span class='ident'>armoring_stream</span> : <span class='ident'>armor</span>::<span class='ident'>ArmoringStream</span>,
+}
+
+
+<span class='kw'>impl</span> <span class='ident'>Write</span> <span class='kw'>for</span> <span class='ident'>ArmoredSaltpack</span> {
+    <span class='kw'>fn</span> <span class='ident'>write</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>buf</span>: <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>]) <span class='op'>-&gt;</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>write</span>(<span class='ident'>buf</span>)
+    }
+    <span class='kw'>fn</span> <span class='ident'>flush</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span>()<span class='op'>&gt;</span> {
+        <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>flush</span>()
+    }
+}
+
+<span class='kw'>impl</span> <span class='ident'>Read</span> <span class='kw'>for</span> <span class='ident'>ArmoredSaltpack</span> {
+
+    <span class='doccomment'>/// Writes the armored saltpack (ascii only characters) as binary data (u8)</span>
+    <span class='doccomment'>/// into `buffer`.</span>
+    <span class='kw'>fn</span> <span class='ident'>read</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='kw-2'>mut</span> <span class='ident'>buffer</span> : <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>u8</span>]) <span class='op'>-&gt;</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span> {
+        <span class='kw'>use</span> <span class='ident'>util</span>::<span class='ident'>Consumable</span>;
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>bytes_read</span> <span class='op'>=</span> <span class='number'>0</span>;
+        <span class='kw'>while</span> <span class='ident'>buffer</span>.<span class='ident'>len</span>() <span class='op'>&gt;</span> <span class='number'>0</span> { <span class='comment'>// still place to write</span>
+            <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>output_buffer</span>.<span class='ident'>len</span>() <span class='op'>&gt;</span> <span class='number'>0</span> {
+                <span class='comment'>// pipe already encrypted through armoring and let armor() directly write to buffer</span>
+                <span class='kw'>let</span> (<span class='ident'>read_from_front</span>, <span class='ident'>written_into_buffer</span>) <span class='op'>=</span> {
+                    <span class='kw'>let</span> <span class='ident'>br</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>bytes_read_from_first_output_buffer_element</span>;
+                    <span class='kw'>let</span> <span class='ident'>front</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>output_buffer</span>.<span class='ident'>front</span>().<span class='ident'>unwrap</span>();
+                    <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>armoring_stream</span>.<span class='ident'>armor</span>(<span class='kw-2'>&amp;</span><span class='ident'>front</span>[<span class='ident'>br</span>..], <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>last_bytes</span>(), <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buffer</span>) {
+                        <span class='prelude-val'>Ok</span>(<span class='ident'>a</span>) <span class='op'>=&gt;</span> <span class='ident'>a</span>,
+                        <span class='prelude-val'>Err</span>(<span class='ident'>msg</span>) <span class='op'>=&gt;</span> { <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>Error</span>::<span class='ident'>new</span>(<span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>ErrorKind</span>::<span class='ident'>InvalidData</span>, <span class='ident'>msg</span>)); }
+                    }
+                };
+                <span class='ident'>bytes_read</span> <span class='op'>+=</span> <span class='ident'>written_into_buffer</span>;
+                <span class='ident'>buffer</span>.<span class='ident'>consume</span>(<span class='ident'>written_into_buffer</span>);
+                <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>bytes_read_from_first_output_buffer_element</span> <span class='op'>+=</span> <span class='ident'>read_from_front</span>;
+
+                <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>output_buffer</span>.<span class='ident'>front</span>().<span class='ident'>unwrap</span>().<span class='ident'>len</span>()
+                  <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>bytes_read_from_first_output_buffer_element</span> {
+                    <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>bytes_read_from_first_output_buffer_element</span> <span class='op'>=</span> <span class='number'>0</span>;
+                    <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>output_buffer</span>.<span class='ident'>pop_front</span>();
+                }
+                <span class='kw'>continue</span>; <span class='comment'>// write again from output buffer if not empty yet.</span>
+            } <span class='kw'>else</span> <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>is_done</span>() {
+                <span class='kw'>break</span>; <span class='comment'>// finished completely</span>
+            } <span class='kw'>else</span> <span class='kw'>if</span> <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>is_done</span>() <span class='op'>&amp;&amp;</span> <span class='op'>!</span><span class='self'>self</span>.<span class='ident'>armoring_stream</span>.<span class='ident'>is_done</span>() {
+                <span class='comment'>// last bytes have been armored, but still data in armor buffer</span>
+                <span class='kw'>let</span> (_, <span class='ident'>written_into_buffer</span>) <span class='op'>=</span> {
+                    <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>armoring_stream</span>.<span class='ident'>armor</span>(<span class='kw-2'>&amp;</span>[], <span class='boolval'>true</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buffer</span>) {
+                        <span class='prelude-val'>Ok</span>(<span class='ident'>a</span>) <span class='op'>=&gt;</span> <span class='ident'>a</span>,
+                        <span class='prelude-val'>Err</span>(<span class='ident'>msg</span>) <span class='op'>=&gt;</span> { <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>Error</span>::<span class='ident'>new</span>(<span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>ErrorKind</span>::<span class='ident'>InvalidData</span>, <span class='ident'>msg</span>)); }
+                    }
+                };
+                <span class='ident'>buffer</span>.<span class='ident'>consume</span>(<span class='ident'>written_into_buffer</span>);
+            } <span class='kw'>else</span> <span class='kw'>if</span> <span class='op'>!</span> <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>encrypt_next_packet</span>() { <span class='comment'>// encrypt new data, since more data is needed</span>
+                <span class='kw'>break</span>; <span class='comment'>// no new encrypted data, so nothing to write</span>
+            }
+        }
+        <span class='prelude-val'>Ok</span>(<span class='ident'>bytes_read</span>)
+    }
+}
+
+<span class='kw'>impl</span> <span class='ident'>ArmoredSaltpack</span> {
+
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>saltpack</span> : <span class='ident'>Saltpack</span>, <span class='ident'>vendor</span> : <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>ArmoredSaltpack</span>, <span class='ident'>String</span><span class='op'>&gt;</span> {
+        <span class='prelude-val'>Ok</span>(<span class='ident'>ArmoredSaltpack</span> {
+            <span class='ident'>saltpack</span> : <span class='ident'>saltpack</span>,
+            <span class='ident'>armoring_stream</span> : <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>armor</span>::<span class='ident'>ArmoringStream</span>::<span class='ident'>new</span>(<span class='ident'>vendor</span>, <span class='ident'>SaltpackMessageType</span>::<span class='ident'>ENCRYPTEDMESSAGE</span>)),
+        })
+    }
+
+    <span class='doccomment'>/// Outputs all</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>to_string</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>String</span> {
+        <span class='self'>self</span>.<span class='ident'>flush</span>().<span class='ident'>unwrap</span>();
+        <span class='kw'>let</span> <span class='ident'>bin_len</span> <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>predict_len</span>();
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>str_u8</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='ident'>with_capacity</span>(<span class='self'>self</span>.<span class='ident'>armoring_stream</span>.<span class='ident'>predict_armored_len</span>(<span class='ident'>bin_len</span>));
+        <span class='self'>self</span>.<span class='ident'>read_to_end</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>str_u8</span>).<span class='ident'>unwrap</span>();
+        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>is_done</span>());
+        <span class='kw'>unsafe</span> { <span class='ident'>String</span>::<span class='ident'>from_utf8_unchecked</span>(<span class='ident'>str_u8</span>) }
+    }
+
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_done</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>is_done</span>() <span class='op'>&amp;&amp;</span> <span class='self'>self</span>.<span class='ident'>armoring_stream</span>.<span class='ident'>is_done</span>()
+    }
+
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>cancel</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
+        <span class='self'>self</span>.<span class='ident'>saltpack</span>.<span class='ident'>cancel</span>();
+        <span class='self'>self</span>.<span class='ident'>armoring_stream</span>.<span class='ident'>cancel</span>();
     }
 }
 
@@ -965,7 +1208,9 @@
     }
 
     <span class='attribute'>#[<span class='ident'>test</span>]</span>
+    <span class='attribute'>#[<span class='ident'>allow</span>(<span class='ident'>unreachable_code</span>)]</span>
     <span class='kw'>fn</span> <span class='ident'>giant_saltpack</span>() {
+        <span class='kw'>return</span>;
         <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>recipients</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='op'>&lt;</span><span class='ident'>PublicKey</span><span class='op'>&gt;</span>::<span class='ident'>new</span>();
         <span class='ident'>recipients</span>.<span class='ident'>push</span>(<span class='ident'>KeyPair</span>::<span class='ident'>gen</span>().<span class='ident'>p</span>);
         <span class='ident'>recipients</span>.<span class='ident'>push</span>(<span class='ident'>KeyPair</span>::<span class='ident'>gen</span>().<span class='ident'>p</span>);
@@ -985,6 +1230,17 @@
         }
         <span class='ident'>saltpack</span>.<span class='ident'>flush</span>().<span class='ident'>unwrap</span>();
         <span class='ident'>saltpack</span>.<span class='ident'>read_to_end</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>buff</span>).<span class='ident'>unwrap</span>();
+    }
+
+    <span class='attribute'>#[<span class='ident'>test</span>]</span>
+    <span class='kw'>fn</span> <span class='ident'>to_string</span>() {
+
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>saltpack</span> <span class='op'>=</span> <span class='ident'>Saltpack</span>::<span class='ident'>encrypt</span>(<span class='prelude-val'>None</span>, <span class='kw-2'>&amp;</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='ident'>KeyPair</span>::<span class='ident'>gen</span>().<span class='ident'>p</span>]);
+        <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>Write</span>;
+        <span class='ident'>saltpack</span>.<span class='ident'>write_all</span>(<span class='string'>b&quot;secretData&quot;</span>).<span class='ident'>unwrap</span>();
+        <span class='ident'>saltpack</span>.<span class='ident'>flush</span>().<span class='ident'>unwrap</span>();
+                <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>armored</span> <span class='op'>=</span> <span class='ident'>saltpack</span>.<span class='ident'>armor</span>(<span class='string'>&quot;&quot;</span>).<span class='ident'>unwrap</span>();
+        <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;{}&quot;</span>, <span class='ident'>armored</span>.<span class='ident'>to_string</span>()); <span class='comment'>// read all</span>
     }
 
     <span class='attribute'>#[<span class='ident'>bench</span>]</span>

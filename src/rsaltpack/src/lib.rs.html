@@ -108,6 +108,16 @@
 <span id="65">65</span>
 <span id="66">66</span>
 <span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
 </pre><pre class='rust '>
 
 <span class='attribute'>#<span class='op'>!</span>[<span class='ident'>feature</span>(<span class='ident'>custom_derive</span>, <span class='ident'>plugin</span>, <span class='ident'>alloc</span>, <span class='ident'>test</span>)]</span>
@@ -115,13 +125,13 @@
 <span class='attribute'>#<span class='op'>!</span>[<span class='ident'>plugin</span>(<span class='ident'>regex_macros</span>)]</span>
 
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>serde</span>;
-<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>serde_json</span>;
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>ramp</span>;
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>byteorder</span>;
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>alloc</span>;
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>regex</span>;
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>rmp</span>;
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>sodiumoxide</span>;
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>rmp_serde</span>;
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>rmp_serialize</span>;
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>rustc_serialize</span>;
 <span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>test</span>;
@@ -129,7 +139,8 @@
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>compose</span>;
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>parse</span>;
 <span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>armor</span>;
-
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>dearmor</span>;
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>util</span>;
 
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>sodiumoxide</span>::<span class='ident'>crypto</span>::<span class='ident'>box_</span>::<span class='ident'>PublicKey</span>;
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>sodiumoxide</span>::<span class='ident'>crypto</span>::<span class='ident'>box_</span>::<span class='ident'>SecretKey</span>;
@@ -169,11 +180,20 @@
     }
 }
 
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>string</span>::<span class='ident'>ToString</span>;
+<span class='kw'>impl</span> <span class='ident'>ToString</span> <span class='kw'>for</span> <span class='ident'>SaltpackMessageType</span> {
+    <span class='kw'>fn</span> <span class='ident'>to_string</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>String</span> {
+        <span class='kw'>match</span> <span class='op'>*</span><span class='self'>self</span> {
+            <span class='ident'>SaltpackMessageType</span>::<span class='ident'>ENCRYPTEDMESSAGE</span> <span class='op'>=&gt;</span> <span class='string'>&quot;ENCRYPTEDMESSAGE&quot;</span>.<span class='ident'>to_string</span>(),
+            <span class='ident'>SaltpackMessageType</span>::<span class='ident'>SIGNEDMESSAGE</span> <span class='op'>=&gt;</span> <span class='string'>&quot;SIGNEDMESSAGE&quot;</span>.<span class='ident'>to_string</span>(),
+            <span class='ident'>SaltpackMessageType</span>::<span class='ident'>DETACHEDSIGNATURE</span> <span class='op'>=&gt;</span> <span class='string'>&quot;DETACHEDSIGNATURE&quot;</span>.<span class='ident'>to_string</span>()
+        }
+    }
+}
+
 
 <span class='attribute'>#[<span class='ident'>cfg</span>(<span class='ident'>test</span>)]</span>
 <span class='kw'>mod</span> <span class='ident'>tests</span> {
-
-    <span class='kw'>use</span> <span class='ident'>super</span>::<span class='op'>*</span>;
 
 }
 </pre>

@@ -46,31 +46,17 @@
             <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                 [<span class='inner'>&#x2212;</span>]
             </a>
-        </span><a id='src-589' class='srclink' href='../../src/rsaltpack/src/armor.rs.html.html#2-204' title='goto source code'>[src]</a></span></h1>
+        </span><a id='src-573' class='srclink' href='../../src/rsaltpack/src/armor.rs.html.html#2-349' title='goto source code'>[src]</a></span></h1>
 <h2 id='reexports' class='section-header'><a href="#reexports">Reexports</a></h2>
 <table><tr><td><code>pub use <a class='enum' href='../../rsaltpack/enum.SaltpackMessageType.html' title='rsaltpack::SaltpackMessageType'>SaltpackMessageType</a>;</code></td></tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
 <table>
                     <tr class=' module-item'>
-                        <td><a class='struct' href='struct.ArmorInfo.html'
-                               title='rsaltpack::armor::ArmorInfo'>ArmorInfo</a></td>
+                        <td><a class='struct' href='struct.ArmoringStream.html'
+                               title='rsaltpack::armor::ArmoringStream'>ArmoringStream</a></td>
                         <td class='docblock short'>
-                             
-                        </td>
-                    </tr>
-                
-                    <tr class=' module-item'>
-                        <td><a class='struct' href='struct.Base62Blocks.html'
-                               title='rsaltpack::armor::Base62Blocks'>Base62Blocks</a></td>
-                        <td class='docblock short'>
-                             
-                        </td>
-                    </tr>
-                
-                    <tr class=' module-item'>
-                        <td><a class='struct' href='struct.Dearmored.html'
-                               title='rsaltpack::armor::Dearmored'>Dearmored</a></td>
-                        <td class='docblock short'>
-                             
+                             <p>Can be used as a streaming interface to armor large amounts of binary data.
+But it is not recommended to use the armored version to send big amounts of
+data. It is slow and inefficient.</p>
                         </td>
                     </tr>
                 
@@ -81,45 +67,48 @@
                              <p>A (half-open) range which is bounded at both ends.</p>
                         </td>
                     </tr>
+                </table><h2 id='constants' class='section-header'><a href="#constants">Constants</a></h2>
+<table>
+                    <tr class=' module-item'>
+                        <td><a class='constant' href='constant.NEWLINE_EVERY.html'
+                               title='rsaltpack::armor::NEWLINE_EVERY'>NEWLINE_EVERY</a></td>
+                        <td class='docblock short'>
+                             <p>The armored string will contain a newline instead of a space every 200 words.</p>
+                        </td>
+                    </tr>
+                
+                    <tr class=' module-item'>
+                        <td><a class='constant' href='constant.SPACE_EVERY.html'
+                               title='rsaltpack::armor::SPACE_EVERY'>SPACE_EVERY</a></td>
+                        <td class='docblock short'>
+                             <p>The armored string will contain a space every 15 characters.</p>
+                        </td>
+                    </tr>
                 </table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
 <table>
                     <tr class=' module-item'>
-                        <td><a class='fn' href='fn.assert_and_strip_header_and_footer.html'
-                               title='rsaltpack::armor::assert_and_strip_header_and_footer'>assert_and_strip_header_and_footer</a></td>
+                        <td><a class='fn' href='fn.alphabet.html'
+                               title='rsaltpack::armor::alphabet'>alphabet</a></td>
                         <td class='docblock short'>
-                             
+                             <p>This function converts a zero based digit in base 62 to its ascii equivalent.</p>
                         </td>
                     </tr>
                 
                     <tr class=' module-item'>
-                        <td><a class='fn' href='fn.base62_to_bin.html'
-                               title='rsaltpack::armor::base62_to_bin'>base62_to_bin</a></td>
+                        <td><a class='fn' href='fn.armor.html'
+                               title='rsaltpack::armor::armor'>armor</a></td>
                         <td class='docblock short'>
-                             
+                             <p>This function is a short interface to ArmoringStream.
+It will convert binary input into the base62 armored version including
+header and footer.</p>
                         </td>
                     </tr>
                 
                     <tr class=' module-item'>
-                        <td><a class='fn' href='fn.convert_to_bytes.html'
-                               title='rsaltpack::armor::convert_to_bytes'>convert_to_bytes</a></td>
+                        <td><a class='fn' href='fn.b32bytes_to_base62_formatted.html'
+                               title='rsaltpack::armor::b32bytes_to_base62_formatted'>b32bytes_to_base62_formatted</a></td>
                         <td class='docblock short'>
-                             
-                        </td>
-                    </tr>
-                
-                    <tr class=' module-item'>
-                        <td><a class='fn' href='fn.dearmor.html'
-                               title='rsaltpack::armor::dearmor'>dearmor</a></td>
-                        <td class='docblock short'>
-                             
-                        </td>
-                    </tr>
-                
-                    <tr class=' module-item'>
-                        <td><a class='fn' href='fn.strip_whitespace.html'
-                               title='rsaltpack::armor::strip_whitespace'>strip_whitespace</a></td>
-                        <td class='docblock short'>
-                             
+                             <p>This function armors one 32 byte block into 43 base62 characters.</p>
                         </td>
                     </tr>
                 </table><h2 id='impls' class='section-header'><a href="#impls">Implementations</a></h2>

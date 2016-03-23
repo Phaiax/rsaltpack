@@ -245,179 +245,442 @@
 <span id="202">202</span>
 <span id="203">203</span>
 <span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+<span id="333">333</span>
+<span id="334">334</span>
+<span id="335">335</span>
+<span id="336">336</span>
+<span id="337">337</span>
+<span id="338">338</span>
+<span id="339">339</span>
+<span id="340">340</span>
+<span id="341">341</span>
+<span id="342">342</span>
+<span id="343">343</span>
+<span id="344">344</span>
+<span id="345">345</span>
+<span id="346">346</span>
+<span id="347">347</span>
+<span id="348">348</span>
+<span id="349">349</span>
 </pre><pre class='rust '>
 
-<span class='kw'>use</span> <span class='ident'>regex</span>::<span class='ident'>Regex</span>;
 <span class='kw'>use</span> <span class='ident'>ramp</span>::<span class='ident'>Int</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>cmp</span>::<span class='ident'>min</span>;
-<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>vec</span>::<span class='ident'>Vec</span>;
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>io</span>::<span class='ident'>Write</span>;
 <span class='kw'>pub</span> <span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>ops</span>::<span class='ident'>Range</span>;
 <span class='kw'>pub</span> <span class='kw'>use</span> ::<span class='ident'>SaltpackMessageType</span>;
+<span class='kw'>use</span> <span class='ident'>util</span>::<span class='ident'>Consumable</span>;
 
+<span class='doccomment'>/// This function is a short interface to ArmoringStream.</span>
+<span class='doccomment'>/// It will convert binary input into the base62 armored version including</span>
+<span class='doccomment'>/// header and footer.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>armor</span>(<span class='ident'>binary_in</span> : <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>u8</span>],
+             <span class='ident'>vendorstring</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>,
+             <span class='ident'>messagetype</span>: <span class='ident'>SaltpackMessageType</span>)
+             <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>String</span>, <span class='ident'>String</span><span class='op'>&gt;</span> {
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>armoring_stream</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>ArmoringStream</span>::<span class='ident'>new</span>(<span class='ident'>vendorstring</span>, <span class='ident'>messagetype</span>));
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>out</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='number'>0u8</span>; <span class='ident'>armoring_stream</span>.<span class='ident'>predict_armored_len</span>(<span class='ident'>binary_in</span>.<span class='ident'>len</span>())];
+    <span class='kw'>let</span> (_, <span class='ident'>written</span>) <span class='op'>=</span> <span class='ident'>armoring_stream</span>.<span class='ident'>armor</span>(<span class='kw-2'>&amp;</span><span class='ident'>binary_in</span>[..], <span class='boolval'>true</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>out</span>[..]).<span class='ident'>unwrap</span>();
+    <span class='ident'>out</span>.<span class='ident'>resize</span>(<span class='ident'>written</span>, <span class='number'>0</span>);
+    <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>armoring_stream</span>.<span class='ident'>is_done</span>());
+    <span class='prelude-val'>Ok</span>(<span class='kw'>unsafe</span> { <span class='ident'>String</span>::<span class='ident'>from_utf8_unchecked</span>(<span class='ident'>out</span>) })
+}
 
+<span class='doccomment'>/// Can be used as a streaming interface to armor large amounts of binary data.</span>
+<span class='doccomment'>/// But it is not recommended to use the armored version to send big amounts of</span>
+<span class='doccomment'>/// data. It is slow and inefficient.</span>
+<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ArmoringStream</span> {
+    <span class='ident'>state</span> : <span class='ident'>ArmoringStreamState</span>,
+    <span class='ident'>buffer</span> : [<span class='ident'>u8</span> ; <span class='ident'>BUF_SIZE</span>],
+    <span class='ident'>header</span> : <span class='ident'>String</span>,
+    <span class='ident'>footer</span> : <span class='ident'>String</span>
+}
+
+<span class='doccomment'>/// State of the armor conversion method.</span>
 <span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>, <span class='ident'>PartialEq</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>ArmorInfo</span> {
-    <span class='kw'>pub</span> <span class='ident'>vendorstring</span>: <span class='ident'>String</span>,
-    <span class='kw'>pub</span> <span class='ident'>messagetype</span>: <span class='ident'>SaltpackMessageType</span>,
+<span class='kw'>enum</span> <span class='ident'>ArmoringStreamState</span> {
+    <span class='ident'>AtHeader</span>{ <span class='ident'>pos</span>: <span class='ident'>usize</span>},
+    <span class='ident'>AtData</span>{ <span class='ident'>space_in</span>: <span class='ident'>usize</span>, <span class='ident'>newline_in</span> : <span class='ident'>usize</span>, <span class='ident'>bufpos</span> : <span class='ident'>usize</span>, <span class='ident'>buflen</span> : <span class='ident'>usize</span> },
+    <span class='ident'>AtFooter</span>{ <span class='ident'>pos</span>: <span class='ident'>usize</span>},
+    <span class='ident'>Finished</span>,
 }
 
-<span class='attribute'>#[<span class='ident'>derive</span>(<span class='ident'>Debug</span>)]</span>
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Dearmored</span> {
-    <span class='kw'>pub</span> <span class='ident'>meta</span>: <span class='ident'>ArmorInfo</span>,
-    <span class='kw'>pub</span> <span class='ident'>binary</span>: <span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>,
-}
+<span class='doccomment'>/// One block of 32 byte will be converted into 43 characters, if it is not the last block.</span>
+<span class='kw'>const</span> <span class='ident'>CHARS_PER_BLOCK</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>43</span>;
+<span class='doccomment'>/// The armored string will contain a space every 15 characters.</span>
+<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>SPACE_EVERY</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>15</span>;
+<span class='doccomment'>/// The armored string will contain a newline instead of a space every 200 words.</span>
+<span class='kw'>pub</span> <span class='kw'>const</span> <span class='ident'>NEWLINE_EVERY</span>: <span class='ident'>usize</span> <span class='op'>=</span> <span class='number'>200</span>;
+<span class='doccomment'>/// Storage needed to store the armored 43 characters with inserted spaces.</span>
+<span class='kw'>const</span> <span class='ident'>BUF_SIZE</span> : <span class='ident'>usize</span> <span class='op'>=</span> <span class='ident'>CHARS_PER_BLOCK</span> <span class='op'>+</span> <span class='ident'>CHARS_PER_BLOCK</span> <span class='op'>/</span> <span class='ident'>SPACE_EVERY</span> <span class='op'>+</span> <span class='number'>1</span>;
 
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>dearmor</span>(<span class='ident'>text</span> : <span class='kw-2'>&amp;</span><span class='ident'>str</span>, <span class='ident'>max</span> : <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>Dearmored</span><span class='op'>&gt;</span>, <span class='ident'>String</span><span class='op'>&gt;</span> {
-    <span class='kw'>let</span> <span class='ident'>stripped</span> <span class='op'>=</span> <span class='ident'>strip_whitespace</span>(<span class='kw-2'>&amp;</span><span class='ident'>text</span>);
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>stripped_view</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>stripped</span>[..];
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>saltpacks</span> <span class='op'>=</span> <span class='ident'>Vec</span>::<span class='op'>&lt;</span><span class='ident'>Dearmored</span><span class='op'>&gt;</span>::<span class='ident'>with_capacity</span>(<span class='ident'>min</span>(<span class='number'>3</span>, <span class='ident'>max</span>));
-    <span class='kw'>for</span> _ <span class='kw'>in</span> <span class='number'>0</span>..<span class='ident'>max</span> {
-        <span class='kw'>if</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>( (<span class='ident'>inners</span>, <span class='ident'>meta</span>, <span class='ident'>range</span>) ) <span class='op'>=</span> <span class='ident'>assert_and_strip_header_and_footer</span>(<span class='kw-2'>&amp;</span><span class='ident'>stripped_view</span>) {
-            <span class='kw'>let</span> <span class='ident'>rawdata</span> <span class='op'>=</span> <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>convert_to_bytes</span>(<span class='kw-2'>&amp;</span><span class='ident'>inners</span>));
-            <span class='ident'>stripped_view</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>stripped_view</span>[<span class='ident'>range</span>.<span class='ident'>end</span>..];
-            <span class='ident'>saltpacks</span>.<span class='ident'>push</span>( <span class='ident'>Dearmored</span> {
-                <span class='ident'>meta</span> : <span class='ident'>meta</span>,
-                <span class='ident'>binary</span> : <span class='ident'>rawdata</span>
-            } );
-        } <span class='kw'>else</span> {
-            <span class='kw'>break</span>;
+
+<span class='kw'>impl</span> <span class='ident'>ArmoringStream</span> {
+
+    <span class='doccomment'>/// Create a new streaming interface</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>new</span>(<span class='ident'>vendorstring</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span>,
+               <span class='ident'>messagetype</span>: <span class='ident'>SaltpackMessageType</span>)
+               <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>ArmoringStream</span>, <span class='ident'>String</span><span class='op'>&gt;</span> {
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='ident'>ArmoringStream</span>::<span class='ident'>valid_vendor</span>(<span class='ident'>vendorstring</span>));
+        <span class='prelude-val'>Ok</span>(<span class='ident'>ArmoringStream</span> {
+            <span class='ident'>state</span> : <span class='ident'>ArmoringStreamState</span>::<span class='ident'>AtHeader</span> {<span class='ident'>pos</span> : <span class='number'>0</span>},
+            <span class='ident'>buffer</span> : [<span class='number'>0u8</span> ; <span class='ident'>BUF_SIZE</span>],
+            <span class='ident'>header</span> : <span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;BEGIN {} SALTPACK {}. &quot;</span>, <span class='ident'>vendorstring</span>, <span class='ident'>messagetype</span>.<span class='ident'>to_string</span>()),
+            <span class='ident'>footer</span> : <span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;. END {} SALTPACK {}.&quot;</span>, <span class='ident'>vendorstring</span>, <span class='ident'>messagetype</span>.<span class='ident'>to_string</span>()),
+        })
+    }
+
+    <span class='kw'>fn</span> <span class='ident'>valid_vendor</span>(<span class='ident'>vendor</span> : <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>String</span><span class='op'>&gt;</span> {
+        <span class='kw'>fn</span> <span class='ident'>in_</span>(<span class='ident'>c</span> : <span class='ident'>char</span>, <span class='ident'>first</span> : <span class='ident'>char</span>, <span class='ident'>last</span> : <span class='ident'>char</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+            <span class='ident'>first</span> <span class='op'>&lt;=</span> <span class='ident'>c</span> <span class='op'>&amp;&amp;</span> <span class='ident'>c</span> <span class='op'>&lt;=</span> <span class='ident'>last</span>
         }
+        <span class='kw'>for</span> <span class='ident'>c</span> <span class='kw'>in</span> <span class='ident'>vendor</span>.<span class='ident'>chars</span>() {
+            <span class='kw'>if</span> <span class='op'>!</span> (<span class='ident'>in_</span>(<span class='ident'>c</span>, <span class='string'>&#39;a&#39;</span>, <span class='string'>&#39;z&#39;</span>) <span class='op'>||</span> <span class='ident'>in_</span>(<span class='ident'>c</span>, <span class='string'>&#39;A&#39;</span>, <span class='string'>&#39;Z&#39;</span>) <span class='op'>||</span> <span class='ident'>in_</span>(<span class='ident'>c</span>, <span class='string'>&#39;0&#39;</span>, <span class='string'>&#39;9&#39;</span>)) {
+                <span class='kw'>return</span> <span class='prelude-val'>Err</span>(<span class='macro'>format</span><span class='macro'>!</span>(<span class='string'>&quot;Invalid char {} in vendor string {}.&quot;</span>, <span class='ident'>c</span>, <span class='ident'>vendor</span>));
+            }
+        }
+        <span class='prelude-val'>Ok</span>(())
     }
-    <span class='kw'>if</span> <span class='ident'>saltpacks</span>.<span class='ident'>is_empty</span>() {
-        <span class='prelude-val'>Err</span>(<span class='string'>&quot;No saltpacks found&quot;</span>.<span class='ident'>to_string</span>())
-    } <span class='kw'>else</span> {
-        <span class='prelude-val'>Ok</span>(<span class='ident'>saltpacks</span>)
-    }
-}
 
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>strip_whitespace</span>(<span class='ident'>input</span> : <span class='kw-2'>&amp;</span><span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='ident'>String</span> {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>out</span> <span class='op'>=</span> <span class='ident'>String</span>::<span class='ident'>with_capacity</span>(<span class='ident'>input</span>.<span class='ident'>len</span>());
-    <span class='kw'>for</span> <span class='ident'>byte</span> <span class='kw'>in</span> <span class='ident'>input</span>.<span class='ident'>chars</span>() {
-        <span class='kw'>match</span> <span class='ident'>byte</span> {
-            <span class='string'>&#39;a&#39;</span> ... <span class='string'>&#39;z&#39;</span> <span class='op'>|</span> <span class='string'>&#39;A&#39;</span> ... <span class='string'>&#39;Z&#39;</span> <span class='op'>|</span> <span class='string'>&#39;0&#39;</span> ... <span class='string'>&#39;9&#39;</span> <span class='op'>|</span> <span class='string'>&#39;.&#39;</span> <span class='op'>=&gt;</span> <span class='ident'>out</span>.<span class='ident'>push</span>(<span class='ident'>byte</span>),
-            _ <span class='op'>=&gt;</span> ()
+    <span class='doccomment'>/// Predicts the total length of armored data including header and footer.</span>
+    <span class='doccomment'>/// Since the armored version is guaranteed to contain only ascii characters,</span>
+    <span class='doccomment'>/// the (armored output as [u8]).len() equals its utf-8 size.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>predict_armored_len</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='ident'>binary_data_len</span> : <span class='ident'>usize</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
+        <span class='comment'>// 74.42 is the slightly down rounded efficiency (log2(62)/8)</span>
+        <span class='kw'>let</span> <span class='ident'>without_spaces</span> : <span class='ident'>f64</span> <span class='op'>=</span> (<span class='ident'>binary_data_len</span> <span class='kw'>as</span> <span class='ident'>f64</span>) <span class='op'>/</span> <span class='number'>0.7442f64</span>;
+        <span class='kw'>let</span> <span class='ident'>with_spaces</span> : <span class='ident'>f64</span> <span class='op'>=</span> <span class='ident'>without_spaces</span> <span class='op'>+</span> (<span class='ident'>without_spaces</span> <span class='op'>/</span> <span class='ident'>SPACE_EVERY</span> <span class='kw'>as</span> <span class='ident'>f64</span>);
+        <span class='self'>self</span>.<span class='ident'>header</span>.<span class='ident'>len</span>() <span class='op'>+</span> <span class='self'>self</span>.<span class='ident'>footer</span>.<span class='ident'>len</span>() <span class='op'>+</span> (<span class='ident'>with_spaces</span> <span class='kw'>as</span> <span class='ident'>usize</span>)
+    }
+
+    <span class='doccomment'>/// Reads bytes from `binary_in` and writes the armored version into `armored_out`</span>
+    <span class='doccomment'>/// If binary_in contains the last bytes that have to be written, set last_bytes to</span>
+    <span class='doccomment'>/// true. Then the footer will be written.</span>
+    <span class='doccomment'>///</span>
+    <span class='doccomment'>/// Returns the bytes read from `binary_in`, the bytes written to `armored_out`.</span>
+    <span class='doccomment'>/// Call `is_done()` to figure out if everything (incl. footer) has been written.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>armor</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>,
+                 <span class='kw-2'>mut</span> <span class='ident'>binary_in</span> : <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>],
+                 <span class='ident'>last_bytes</span> : <span class='ident'>bool</span>,
+                 <span class='kw-2'>mut</span> <span class='ident'>armored_out</span> : <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span>[<span class='ident'>u8</span>])
+                 <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(<span class='ident'>usize</span>, <span class='ident'>usize</span>), <span class='ident'>String</span><span class='op'>&gt;</span> {
+
+        <span class='kw'>let</span> <span class='ident'>binary_in_len</span> <span class='op'>=</span> <span class='ident'>binary_in</span>.<span class='ident'>len</span>();
+        <span class='kw'>let</span> <span class='ident'>armored_out_len</span> <span class='op'>=</span> <span class='ident'>armored_out</span>.<span class='ident'>len</span>();
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>next</span> <span class='op'>=</span> <span class='boolval'>false</span>;
+
+        <span class='comment'>// Write as much header as possible.</span>
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>ArmoringStreamState</span>::<span class='ident'>AtHeader</span>{<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>pos</span>} <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>state</span> {
+            <span class='op'>*</span><span class='ident'>pos</span> <span class='op'>+=</span> <span class='ident'>armored_out</span>.<span class='ident'>write</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>header</span>.<span class='ident'>as_bytes</span>()[<span class='op'>*</span><span class='ident'>pos</span>..]).<span class='ident'>unwrap</span>();
+            <span class='ident'>next</span> <span class='op'>=</span> <span class='op'>*</span><span class='ident'>pos</span> <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>header</span>.<span class='ident'>len</span>()
+        };
+
+        <span class='comment'>// Switch to state `AtData` if header is written.</span>
+        <span class='self'>self</span>.<span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>next</span>);
+
+        <span class='comment'>// Write as much armored data as possible.</span>
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>ArmoringStreamState</span>::<span class='ident'>AtData</span>{<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>space_in</span>,
+                                           <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>newline_in</span>,
+                                           <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>bufpos</span>,
+                                           <span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>buflen</span> } <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>state</span> {
+            <span class='kw'>while</span> <span class='ident'>armored_out</span>.<span class='ident'>len</span>() <span class='op'>&gt;</span> <span class='number'>0</span> { <span class='comment'>// has place to write</span>
+                <span class='kw'>if</span> <span class='ident'>bufpos</span> <span class='op'>==</span> <span class='ident'>buflen</span> { <span class='comment'>// self.buffer got empty</span>
+
+                    <span class='comment'>// 32 byte &lt;&gt; 43 characters</span>
+                    <span class='kw'>if</span> <span class='ident'>binary_in</span>.<span class='ident'>len</span>() <span class='op'>&gt;=</span> <span class='number'>32</span> <span class='op'>&amp;&amp;</span> <span class='ident'>armored_out</span>.<span class='ident'>len</span>() <span class='op'>&gt;=</span> <span class='ident'>BUF_SIZE</span> {
+                        <span class='comment'>// shortcut: direct write to armored_out</span>
+                        <span class='kw'>let</span> <span class='ident'>written</span> <span class='op'>=</span> <span class='ident'>b32bytes_to_base62_formatted</span>(<span class='kw-2'>&amp;</span><span class='ident'>binary_in</span>[<span class='number'>0</span>..<span class='number'>32</span>],
+                                                         <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>armored_out</span>,
+                                                         <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='op'>*</span><span class='ident'>space_in</span>,
+                                                         <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='op'>*</span><span class='ident'>newline_in</span>,
+                                                         <span class='boolval'>true</span>);
+                        <span class='ident'>armored_out</span>.<span class='ident'>consume</span>(<span class='ident'>written</span>);
+                        <span class='ident'>binary_in</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>binary_in</span>[<span class='number'>32</span>..];
+                        <span class='kw'>continue</span>; <span class='comment'>// bufpos is still buflen</span>
+                    } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>binary_in</span>.<span class='ident'>len</span>() <span class='op'>&gt;=</span> <span class='number'>32</span> {
+                        <span class='comment'>// the complete 43+x char block doesn&#39;t fit into armored_out</span>
+                        <span class='comment'>// first base62-convert next 32 input bytes into self.buffer ...</span>
+                        <span class='op'>*</span><span class='ident'>buflen</span> <span class='op'>=</span> <span class='ident'>b32bytes_to_base62_formatted</span>(<span class='kw-2'>&amp;</span><span class='ident'>binary_in</span>[<span class='number'>0</span>..<span class='number'>32</span>],
+                                                         <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>buffer</span>[..],
+                                                         <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='op'>*</span><span class='ident'>space_in</span>,
+                                                         <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='op'>*</span><span class='ident'>newline_in</span>,
+                                                         <span class='boolval'>true</span>);
+                        <span class='ident'>binary_in</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='ident'>binary_in</span>[<span class='number'>32</span>..];
+                        <span class='op'>*</span><span class='ident'>bufpos</span> <span class='op'>=</span> <span class='number'>0</span>;
+                    } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>binary_in</span>.<span class='ident'>len</span>() <span class='op'>&gt;</span> <span class='number'>0</span> <span class='op'>&amp;&amp;</span> <span class='ident'>last_bytes</span> { <span class='comment'>// last non full block</span>
+                        <span class='op'>*</span><span class='ident'>buflen</span> <span class='op'>=</span> <span class='ident'>b32bytes_to_base62_formatted</span>(<span class='kw-2'>&amp;</span><span class='ident'>binary_in</span>[..],
+                                                         <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>.<span class='ident'>buffer</span>[..],
+                                                         <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='op'>*</span><span class='ident'>space_in</span>,
+                                                         <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='op'>*</span><span class='ident'>newline_in</span>,
+                                                         <span class='boolval'>false</span>);
+                        <span class='ident'>binary_in</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span>[]; <span class='comment'>// finish</span>
+                        <span class='op'>*</span><span class='ident'>bufpos</span> <span class='op'>=</span> <span class='number'>0</span>;
+                    } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>binary_in</span>.<span class='ident'>len</span>() <span class='op'>==</span> <span class='number'>0</span> <span class='op'>&amp;&amp;</span> <span class='ident'>last_bytes</span> {
+                        <span class='ident'>next</span> <span class='op'>=</span> <span class='boolval'>true</span>;
+                        <span class='kw'>break</span>;
+                    } <span class='kw'>else</span> {
+                        <span class='kw'>break</span>; <span class='comment'>// waiting for more input data</span>
+                    }
+                }
+
+                <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>bufpos</span> <span class='op'>&lt;</span> <span class='ident'>buflen</span>);
+                <span class='comment'>// ... then write all that fits into armored_out</span>
+                <span class='op'>*</span><span class='ident'>bufpos</span> <span class='op'>+=</span> <span class='ident'>armored_out</span>.<span class='ident'>write</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>buffer</span>[<span class='op'>*</span><span class='ident'>bufpos</span>..]).<span class='ident'>unwrap</span>();
+
+            }
+        }
+
+        <span class='comment'>// Switch to state `AtFooter` if main data is written.</span>
+        <span class='self'>self</span>.<span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>next</span>);
+
+        <span class='comment'>// Write as much footer data as possible.</span>
+        <span class='kw'>if</span> <span class='kw'>let</span> <span class='ident'>ArmoringStreamState</span>::<span class='ident'>AtFooter</span>{<span class='kw-2'>ref</span> <span class='kw-2'>mut</span> <span class='ident'>pos</span>} <span class='op'>=</span> <span class='self'>self</span>.<span class='ident'>state</span> {
+            <span class='op'>*</span><span class='ident'>pos</span> <span class='op'>+=</span> <span class='ident'>armored_out</span>.<span class='ident'>write</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>footer</span>.<span class='ident'>as_bytes</span>()[<span class='op'>*</span><span class='ident'>pos</span>..]).<span class='ident'>unwrap</span>();
+            <span class='ident'>next</span> <span class='op'>=</span> <span class='op'>*</span><span class='ident'>pos</span> <span class='op'>==</span> <span class='self'>self</span>.<span class='ident'>footer</span>.<span class='ident'>len</span>();
+        }
+
+        <span class='comment'>// Switch to state `Finished` if footer is written.</span>
+        <span class='self'>self</span>.<span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>next</span>);
+
+        <span class='prelude-val'>Ok</span>((<span class='ident'>binary_in_len</span>   <span class='op'>-</span> <span class='ident'>binary_in</span>.<span class='ident'>len</span>() ,
+            <span class='ident'>armored_out_len</span> <span class='op'>-</span> <span class='ident'>armored_out</span>.<span class='ident'>len</span>()))
+    }
+
+    <span class='doccomment'>/// Go to next state if `next` is true. Set `next` to false.</span>
+    <span class='kw'>fn</span> <span class='ident'>next</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>next</span> : <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>bool</span>) {
+        <span class='kw'>if</span> <span class='op'>!</span> <span class='op'>*</span><span class='ident'>next</span> { <span class='kw'>return</span> }
+        <span class='op'>*</span><span class='ident'>next</span> <span class='op'>=</span> <span class='boolval'>false</span>;
+        <span class='self'>self</span>.<span class='ident'>state</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='self'>self</span>.<span class='ident'>state</span> {
+            <span class='ident'>ArmoringStreamState</span>::<span class='ident'>AtHeader</span>{<span class='ident'>pos</span> : _} <span class='op'>=&gt;</span> {
+                <span class='ident'>ArmoringStreamState</span>::<span class='ident'>AtData</span>{<span class='ident'>space_in</span> : <span class='ident'>SPACE_EVERY</span>,
+                                                     <span class='ident'>newline_in</span> : <span class='ident'>NEWLINE_EVERY</span>,
+                                                     <span class='ident'>bufpos</span> : <span class='number'>0</span>,
+                                                     <span class='ident'>buflen</span> : <span class='number'>0</span>}
+            },
+            <span class='ident'>ArmoringStreamState</span>::<span class='ident'>AtData</span>{<span class='ident'>buflen</span> : _, <span class='ident'>bufpos</span> : _, <span class='ident'>newline_in</span> : _, <span class='ident'>space_in</span> : _} <span class='op'>=&gt;</span> {
+                <span class='ident'>ArmoringStreamState</span>::<span class='ident'>AtFooter</span>{
+                    <span class='ident'>pos</span> : <span class='number'>0</span>
+                }
+            },
+            <span class='ident'>ArmoringStreamState</span>::<span class='ident'>AtFooter</span>{<span class='ident'>pos</span>: _} <span class='op'>=&gt;</span> {
+                <span class='ident'>ArmoringStreamState</span>::<span class='ident'>Finished</span>
+            },
+            <span class='ident'>ArmoringStreamState</span>::<span class='ident'>Finished</span> <span class='op'>=&gt;</span> {
+               <span class='ident'>ArmoringStreamState</span>::<span class='ident'>Finished</span>
+            }
         };
     }
-    <span class='ident'>out</span>
+
+    <span class='doccomment'>/// Returns `true` if header, data and footer have been written completely.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>is_done</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>bool</span> {
+        <span class='self'>self</span>.<span class='ident'>state</span> <span class='op'>==</span> <span class='ident'>ArmoringStreamState</span>::<span class='ident'>Finished</span>
+    }
+
+    <span class='doccomment'>/// Stops writing and reading anything. `is_done` will be `true`.</span>
+    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>cancel</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>) {
+        <span class='self'>self</span>.<span class='ident'>state</span> <span class='op'>=</span> <span class='ident'>ArmoringStreamState</span>::<span class='ident'>Finished</span>;
+    }
+
 }
 
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>assert_and_strip_header_and_footer</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='ident'>input</span> : <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span>, <span class='ident'>ArmorInfo</span>, <span class='ident'>Range</span><span class='op'>&lt;</span><span class='ident'>usize</span><span class='op'>&gt;</span>)<span class='op'>&gt;</span> {
-    <span class='kw'>let</span> <span class='ident'>re</span> : <span class='ident'>Regex</span> <span class='op'>=</span> <span class='macro'>regex</span><span class='macro'>!</span>(<span class='string'>r&quot;BEGIN([a-zA-Z0-9]+)?SALTPACK(ENCRYPTEDMESSAGE|SIGNEDMESSAGE|DETACHEDSIGNATURE)\.&quot;</span>);
-    <span class='kw'>let</span> <span class='ident'>cap</span> <span class='op'>=</span> <span class='ident'>re</span>.<span class='ident'>captures_iter</span>(<span class='ident'>input</span>).<span class='ident'>next</span>();
-    <span class='kw'>if</span> <span class='ident'>cap</span>.<span class='ident'>is_none</span>() {
-        <span class='kw'>return</span> <span class='prelude-val'>None</span>;
-        <span class='comment'>//return Err(&quot;No Saltpack Message&quot;.to_string());</span>
+<span class='kw'>use</span> <span class='ident'>std</span>::<span class='ident'>fmt</span>;
+<span class='kw'>impl</span> <span class='ident'>fmt</span>::<span class='ident'>Debug</span> <span class='kw'>for</span> <span class='ident'>ArmoringStream</span> {
+    <span class='kw'>fn</span> <span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>, <span class='kw-2'>mut</span> <span class='ident'>f</span> : <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>fmt</span>::<span class='ident'>Formatter</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span>(), <span class='ident'>fmt</span>::<span class='ident'>Error</span><span class='op'>&gt;</span> {
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>state</span>.<span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>f</span>));
+        <span class='macro'>try</span><span class='macro'>!</span>(<span class='self'>self</span>.<span class='ident'>buffer</span>[..].<span class='ident'>fmt</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>f</span>));
+        <span class='prelude-val'>Ok</span>(())
     }
-    <span class='kw'>let</span> <span class='ident'>header_match</span> <span class='op'>=</span> <span class='ident'>cap</span>.<span class='ident'>unwrap</span>();
-    <span class='kw'>let</span> <span class='ident'>vendor</span> <span class='op'>=</span> <span class='ident'>header_match</span>.<span class='ident'>at</span>(<span class='number'>1</span>).<span class='ident'>unwrap_or</span>(<span class='string'>&quot;&quot;</span>);
-    <span class='kw'>let</span> <span class='ident'>typ</span> <span class='op'>=</span> <span class='ident'>header_match</span>.<span class='ident'>at</span>(<span class='number'>2</span>).<span class='ident'>unwrap_or</span>(<span class='string'>&quot;&quot;</span>);
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>footer</span> <span class='op'>=</span> <span class='ident'>String</span>::<span class='ident'>with_capacity</span>(<span class='ident'>header_match</span>.<span class='ident'>len</span>());
-    <span class='ident'>footer</span>.<span class='ident'>push_str</span>(<span class='string'>&quot;.END&quot;</span>);
-    <span class='ident'>footer</span>.<span class='ident'>push_str</span>(<span class='ident'>vendor</span>);
-    <span class='ident'>footer</span>.<span class='ident'>push_str</span>(<span class='string'>&quot;SALTPACK&quot;</span>);
-    <span class='ident'>footer</span>.<span class='ident'>push_str</span>(<span class='ident'>typ</span>);
-    <span class='ident'>footer</span>.<span class='ident'>push_str</span>(<span class='string'>&quot;.&quot;</span>);
+}
 
-    <span class='kw'>let</span> <span class='ident'>typ</span> <span class='op'>=</span> <span class='kw'>match</span> <span class='ident'>typ</span> {
-        <span class='string'>&quot;ENCRYPTEDMESSAGE&quot;</span> <span class='op'>=&gt;</span> <span class='ident'>SaltpackMessageType</span>::<span class='ident'>ENCRYPTEDMESSAGE</span>,
-        <span class='string'>&quot;SIGNEDMESSAGE&quot;</span> <span class='op'>=&gt;</span> <span class='ident'>SaltpackMessageType</span>::<span class='ident'>SIGNEDMESSAGE</span>,
-        <span class='string'>&quot;DETACHEDSIGNATURE&quot;</span> <span class='op'>=&gt;</span> <span class='ident'>SaltpackMessageType</span>::<span class='ident'>DETACHEDSIGNATURE</span>,
-        _ <span class='op'>=&gt;</span> <span class='macro'>panic</span><span class='macro'>!</span>(<span class='string'>&quot;typ not covered&quot;</span>)
-    };
-    <span class='kw'>let</span> <span class='ident'>header_start</span> <span class='op'>=</span> <span class='ident'>header_match</span>.<span class='ident'>pos</span>(<span class='number'>0</span>).<span class='ident'>unwrap</span>().<span class='number'>0</span>;
-    <span class='kw'>let</span> <span class='ident'>header_end</span> <span class='op'>=</span> <span class='ident'>header_match</span>.<span class='ident'>pos</span>(<span class='number'>0</span>).<span class='ident'>unwrap</span>().<span class='number'>1</span>;
-    <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;FOOTER: {:?}&quot;</span>, <span class='ident'>footer</span>);
 
-    <span class='kw'>for</span> <span class='ident'>footer_start</span> <span class='kw'>in</span> <span class='ident'>header_end</span> .. <span class='ident'>input</span>.<span class='ident'>len</span>()<span class='op'>-</span><span class='ident'>footer</span>.<span class='ident'>len</span>()<span class='op'>+</span><span class='number'>1</span> {
-        <span class='kw'>let</span> <span class='ident'>footer_end</span> <span class='op'>=</span> <span class='ident'>footer_start</span> <span class='op'>+</span> <span class='ident'>footer</span>.<span class='ident'>len</span>();
+<span class='doccomment'>/// This function converts a zero based digit in base 62 to its ascii equivalent.</span>
+<span class='attribute'>#[<span class='ident'>inline</span>]</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>alphabet</span>(<span class='ident'>i</span> : <span class='ident'>u8</span>) <span class='op'>-&gt;</span> <span class='ident'>u8</span> {
+    <span class='kw'>if</span> <span class='ident'>i</span> <span class='op'>&lt;=</span> <span class='number'>9</span> {
+        <span class='ident'>i</span> <span class='op'>+</span> <span class='string'>b&#39;0&#39;</span>
+    } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>i</span> <span class='op'>&lt;=</span> <span class='number'>35</span> {
+        <span class='ident'>i</span> <span class='op'>+</span> <span class='string'>b&#39;A&#39;</span> <span class='op'>-</span> <span class='number'>10</span>
+    } <span class='kw'>else</span> {
+        <span class='ident'>i</span> <span class='op'>+</span> <span class='string'>b&#39;a&#39;</span> <span class='op'>-</span> <span class='number'>36</span>
+    }
+}
 
-        <span class='kw'>if</span> <span class='ident'>input</span>[<span class='ident'>footer_start</span>..<span class='ident'>footer_end</span>] <span class='op'>==</span> <span class='ident'>footer</span> {
-            <span class='kw'>let</span> <span class='ident'>headerinfo</span> <span class='op'>=</span> <span class='ident'>ArmorInfo</span> {
-                <span class='ident'>vendorstring</span> : <span class='ident'>vendor</span>.<span class='ident'>to_string</span>(),
-                <span class='ident'>messagetype</span> : <span class='ident'>typ</span>,
-            };
-            <span class='kw'>let</span> <span class='ident'>range</span> <span class='op'>=</span> <span class='ident'>Range</span> {
-                <span class='ident'>start</span> : <span class='ident'>header_start</span>,
-                <span class='ident'>end</span> : <span class='ident'>footer_end</span>
-            };
-            <span class='kw'>return</span> <span class='prelude-val'>Some</span>( (<span class='kw-2'>&amp;</span><span class='ident'>input</span>[<span class='ident'>header_end</span>..<span class='ident'>footer_start</span>], <span class='ident'>headerinfo</span>, <span class='ident'>range</span>) );
+<span class='doccomment'>/// This function armors one 32 byte block into 43 base62 characters.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// It inserts spaces and newlines, as soon as the counters `space_in` and</span>
+<span class='doccomment'>/// `newline_in` reach zero. It is intended that consecutive calls always</span>
+<span class='doccomment'>/// get references to the same counters, so the inserted spaces are all</span>
+<span class='doccomment'>/// equidistant.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// If `full_32` is true, it will always output 43 characters right aligned,</span>
+<span class='doccomment'>/// even if the 32 byte input can be represented with 42 characters.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// Returns the number of bytes, that have been written into base62out.</span>
+<span class='doccomment'>///</span>
+<span class='doccomment'>/// Base62out must have place for `BUF_SIZE` characters, otherwise it will panic.</span>
+<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>b32bytes_to_base62_formatted</span>(<span class='ident'>raw_in</span> : <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>],
+                               <span class='ident'>base62out</span> : <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> [<span class='ident'>u8</span>],
+                               <span class='ident'>space_in</span> : <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>usize</span>,
+                               <span class='ident'>newline_in</span> : <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>usize</span>,
+                               <span class='ident'>full_32</span> : <span class='ident'>bool</span>) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
+    <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>raw_in</span>.<span class='ident'>len</span>() <span class='op'>&lt;=</span> <span class='number'>32</span>);
+    <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>base62out</span>.<span class='ident'>len</span>() <span class='op'>&gt;=</span> <span class='ident'>BUF_SIZE</span>);
+    <span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>space_in</span> <span class='op'>&gt;</span> <span class='number'>0</span>);
+    <span class='macro'>assert</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>newline_in</span> <span class='op'>&gt;</span> <span class='number'>0</span>);
+    <span class='kw'>let</span> <span class='ident'>i</span> <span class='op'>=</span> <span class='ident'>Int</span>::<span class='ident'>from_big_endian_slice</span>(<span class='ident'>raw_in</span>);
+    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>written</span> <span class='op'>=</span> <span class='number'>0</span>;
+    <span class='kw'>let</span> <span class='ident'>min_len</span> <span class='op'>=</span> <span class='kw'>if</span> <span class='ident'>full_32</span> { <span class='number'>43</span> } <span class='kw'>else</span> { <span class='number'>0</span> };
+    <span class='ident'>i</span>.<span class='ident'>write_radix_callback_minlen</span>(<span class='number'>62</span>, <span class='ident'>min_len</span>, <span class='op'>|</span><span class='ident'>b</span><span class='op'>|</span> {
+        <span class='kw'>unsafe</span> {
+            <span class='comment'>//base62out.write(alphabet(b)).unwrap();</span>
+            <span class='op'>*</span><span class='ident'>base62out</span>.<span class='ident'>get_unchecked_mut</span>(<span class='ident'>written</span>) <span class='op'>=</span> <span class='ident'>alphabet</span>(<span class='ident'>b</span>);
+            <span class='ident'>written</span> <span class='op'>+=</span> <span class='number'>1</span>;
+            <span class='op'>*</span><span class='ident'>space_in</span> <span class='op'>-=</span> <span class='number'>1</span>;
+            <span class='kw'>if</span> <span class='op'>*</span><span class='ident'>space_in</span> <span class='op'>==</span> <span class='number'>0</span> {
+                <span class='op'>*</span><span class='ident'>space_in</span> <span class='op'>=</span> <span class='ident'>SPACE_EVERY</span>;
+                <span class='op'>*</span><span class='ident'>newline_in</span> <span class='op'>-=</span> <span class='number'>1</span>;
+                <span class='kw'>if</span> <span class='op'>*</span><span class='ident'>newline_in</span> <span class='op'>==</span> <span class='number'>0</span> {
+                    <span class='op'>*</span><span class='ident'>newline_in</span> <span class='op'>=</span> <span class='ident'>NEWLINE_EVERY</span>;
+                    <span class='comment'>//base62out.write(alphabet(b&#39;\n&#39;)).unwrap();</span>
+                    <span class='op'>*</span><span class='ident'>base62out</span>.<span class='ident'>get_unchecked_mut</span>(<span class='ident'>written</span>) <span class='op'>=</span> <span class='string'>b&#39;\n&#39;</span>;
+                    <span class='ident'>written</span> <span class='op'>+=</span> <span class='number'>1</span>;
+                } <span class='kw'>else</span> {
+                    <span class='comment'>//base62out.write(alphabet(b&#39; &#39;)).unwrap();</span>
+                    <span class='op'>*</span><span class='ident'>base62out</span>.<span class='ident'>get_unchecked_mut</span>(<span class='ident'>written</span>) <span class='op'>=</span> <span class='string'>b&#39; &#39;</span>;
+                    <span class='ident'>written</span> <span class='op'>+=</span> <span class='number'>1</span>;
+                }
+            }
         }
-    }
-    <span class='prelude-val'>None</span>
-    <span class='comment'>//Err(&quot;No corresponding footer found.&quot;.to_string())</span>
+    });
+    <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>BUF_SIZE</span> <span class='op'>&gt;=</span> <span class='ident'>written</span>);
+    <span class='ident'>written</span>
 }
-
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>convert_to_bytes</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span>(<span class='ident'>stripped_input</span> : <span class='kw-2'>&amp;</span> <span class='ident'>str</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Result</span><span class='op'>&lt;</span><span class='ident'>Vec</span><span class='op'>&lt;</span><span class='ident'>u8</span><span class='op'>&gt;</span>, <span class='ident'>String</span><span class='op'>&gt;</span> {
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>raw_output</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='number'>0u8</span>; <span class='ident'>stripped_input</span>.<span class='ident'>len</span>() <span class='op'>*</span> <span class='number'>3</span> <span class='op'>/</span> <span class='number'>4</span> <span class='op'>+</span> <span class='number'>32</span> <span class='op'>+</span> <span class='number'>1</span>];
-    <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>raw_output_pointer</span> <span class='op'>=</span> <span class='number'>0</span>;
-    {
-        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>block_it</span> <span class='op'>=</span> <span class='ident'>stripped_input</span>.<span class='ident'>as_len43_based_blocks</span>();
-        <span class='kw'>while</span> <span class='kw'>let</span> <span class='prelude-val'>Some</span>(<span class='ident'>base62block</span>) <span class='op'>=</span> <span class='ident'>block_it</span>.<span class='ident'>next_</span>() {
-            <span class='ident'>raw_output_pointer</span> <span class='op'>+=</span> <span class='ident'>base62_to_bin</span>(<span class='ident'>base62block</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>raw_output</span>[<span class='ident'>raw_output_pointer</span>..<span class='ident'>raw_output_pointer</span><span class='op'>+</span><span class='number'>32</span>]);
-        }
-    }
-    <span class='ident'>raw_output</span>.<span class='ident'>resize</span>(<span class='ident'>raw_output_pointer</span>, <span class='number'>0</span>);
-    <span class='kw'>return</span> <span class='prelude-val'>Ok</span>(<span class='ident'>raw_output</span>);
-}
-
-<span class='kw'>pub</span> <span class='kw'>struct</span> <span class='ident'>Base62Blocks</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='ident'>stripped</span> : <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span>[<span class='ident'>u8</span>],
-    <span class='ident'>buff</span> : [<span class='ident'>u8</span> ; <span class='number'>43</span>],
-}
-
-<span class='kw'>trait</span> <span class='ident'>To62BaseBlocks</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='kw'>fn</span> <span class='ident'>as_len43_based_blocks</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Base62Blocks</span>;
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>To62BaseBlocks</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='kw'>for</span> <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;a</span> <span class='ident'>str</span> {
-    <span class='kw'>fn</span> <span class='ident'>as_len43_based_blocks</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='ident'>Base62Blocks</span> {
-        <span class='ident'>Base62Blocks</span> {
-            <span class='ident'>stripped</span> : <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>as_bytes</span>(),
-            <span class='ident'>buff</span> : [<span class='number'>0</span>;<span class='number'>43</span>]
-        }
-    }
-}
-
-<span class='kw'>impl</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> <span class='ident'>Base62Blocks</span><span class='op'>&lt;</span><span class='lifetime'>&#39;a</span><span class='op'>&gt;</span> {
-    <span class='comment'>// iterator inferface will not comply with lifetimes</span>
-    <span class='kw'>fn</span> <span class='ident'>next_</span><span class='op'>&lt;</span><span class='lifetime'>&#39;b</span><span class='op'>&gt;</span>(<span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> <span class='kw-2'>mut</span> <span class='self'>self</span>) <span class='op'>-&gt;</span> <span class='prelude-ty'>Option</span><span class='op'>&lt;</span><span class='kw-2'>&amp;</span><span class='lifetime'>&#39;b</span> [<span class='ident'>u8</span>]<span class='op'>&gt;</span> {
-        <span class='kw'>let</span> <span class='ident'>remaining</span> <span class='op'>=</span> <span class='ident'>min</span>(<span class='self'>self</span>.<span class='ident'>stripped</span>.<span class='ident'>len</span>(), <span class='number'>43</span>);
-        <span class='kw'>if</span> <span class='ident'>remaining</span> <span class='op'>==</span> <span class='number'>0</span> {
-            <span class='kw'>return</span> <span class='prelude-val'>None</span>
-        }
-        <span class='self'>self</span>.<span class='ident'>dealphabet_chunk</span>(<span class='ident'>remaining</span>);
-        <span class='self'>self</span>.<span class='ident'>stripped</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>stripped</span>[<span class='ident'>remaining</span>..];
-        <span class='prelude-val'>Some</span>(<span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>buff</span>[<span class='number'>0</span>..<span class='ident'>remaining</span>])
-    }
-
-    <span class='doccomment'>///#[inline]</span>
-    <span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>dealphabet</span>(<span class='ident'>i</span> : <span class='ident'>u8</span>) <span class='op'>-&gt;</span> <span class='ident'>u8</span> {
-        <span class='kw'>if</span> <span class='ident'>i</span> <span class='op'>&lt;=</span> <span class='string'>b&#39;9&#39;</span> {
-            <span class='ident'>i</span> <span class='op'>-</span> <span class='string'>b&#39;0&#39;</span>
-        } <span class='kw'>else</span> <span class='kw'>if</span> <span class='ident'>i</span> <span class='op'>&lt;=</span> <span class='string'>b&#39;Z&#39;</span> {
-            <span class='ident'>i</span> <span class='op'>-</span> <span class='string'>b&#39;A&#39;</span> <span class='op'>+</span> <span class='number'>10</span>
-        } <span class='kw'>else</span> {
-            <span class='ident'>i</span> <span class='op'>-</span> <span class='string'>b&#39;a&#39;</span> <span class='op'>+</span> <span class='number'>36</span>
-        }
-    }
-
-    <span class='attribute'>#[<span class='ident'>inline</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>dealphabet_chunk</span>(<span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='self'>self</span>, <span class='ident'>len</span> : <span class='ident'>usize</span>) {
-        <span class='kw'>let</span> <span class='ident'>chunk</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='self'>self</span>.<span class='ident'>stripped</span>[<span class='number'>0</span>..<span class='ident'>len</span>];
-        <span class='kw'>for</span> (<span class='ident'>c</span>, <span class='ident'>b</span>) <span class='kw'>in</span> <span class='ident'>chunk</span>.<span class='ident'>iter</span>().<span class='ident'>zip</span>(<span class='self'>self</span>.<span class='ident'>buff</span>.<span class='ident'>iter_mut</span>()) {
-            <span class='op'>*</span><span class='ident'>b</span> <span class='op'>=</span> <span class='ident'>Base62Blocks</span>::<span class='ident'>dealphabet</span>(<span class='op'>*</span><span class='ident'>c</span>);
-        }
-    }
-
-}
-
-<span class='kw'>pub</span> <span class='kw'>fn</span> <span class='ident'>base62_to_bin</span>(<span class='ident'>base62</span> : <span class='kw-2'>&amp;</span>[<span class='ident'>u8</span>], <span class='ident'>rawout</span> : <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span>[<span class='ident'>u8</span>]) <span class='op'>-&gt;</span> <span class='ident'>usize</span> {
-    <span class='kw'>let</span> <span class='ident'>i</span> <span class='op'>=</span> <span class='kw'>unsafe</span> {
-        <span class='ident'>Int</span>::<span class='ident'>from_u8_be_radix_unchecked</span>(<span class='ident'>base62</span>, <span class='number'>62</span>).<span class='ident'>unwrap</span>()
-    };
-    <span class='ident'>i</span>.<span class='ident'>write_big_endian_buffer</span>(<span class='ident'>rawout</span>).<span class='ident'>unwrap</span>()
-}
-
 
 
 
@@ -425,30 +688,57 @@
 <span class='kw'>mod</span> <span class='ident'>tests</span> {
     <span class='kw'>use</span> <span class='ident'>super</span>::<span class='op'>*</span>;
 
-    <span class='kw'>static</span> <span class='ident'>ARMORED_1</span> : <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span> <span class='op'>=</span> <span class='string'>&quot;BEGIN SALTPACK SIGNED MESSAGE. kYM5h1pg6qz9UMn j6G7KB2OUX3itkn C30ZZBPzjc8STxf i06TIQhJ4wRFSMU hFa9gmcvl2AW8Kk qmTdLkkppPieOWq o9aWouAaMpQ9kWt eMlv17NOUUr9Gp3 fClo7khRnJ12T7j 6ZVkfDXUpznTp57 0btBywDV848jyp2 EceloYGiuOolWim 8HCx77p22iulWja ixShPFcOi1mkG2i 4Iur3QfGYeKpflx a1GXmvQLi1G99mH 625dH5HGcQ63pOb K1i7g3lXIQ9Kcfy NRDfdBIDMHJaJf1 uTKB4GJ9l4M7glS 07h9QsU4gPueyNC hzm6LmA9CFllzxy 8ZA0Ys5qDnSuwaN obowMNXpbm1nlsx fXFtMolx6ghLuEw 2s8f1jBxBQjQPwa GG90h5BbpoWGPk6 dRsou5kdNxcLaFJ KKXWTUR2h9P0P7p 9UYRsQ6QqGNiwmG wXC7YFh1xCUdAib gjZbUYUKN6KVLem hZI6XYtX2l1w8d5 jL8KJ5ZZpKhJ4JC faVWCU2VRtUFgQO ejKm6wjs6NcekTd KK4bOh5kr87cyRu 0aDjEtfMSyZZTG5 hIrEWcMq1Iotzrx iRdmY5GYf2Kx0Br 4K0rqrj8ZGa. END SALTPACK SIGNED MESSAGE.&quot;</span>;
-
-    <span class='kw'>static</span> <span class='ident'>STRIPPED_1</span> : <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span> <span class='op'>=</span> <span class='string'>&quot;BEGINSALTPACKSIGNEDMESSAGE.kYM5h1pg6qz9UMnj6G7KB2OUX3itknC30ZZBPzjc8STxfi06TIQhJ4wRFSMUhFa9gmcvl2AW8KkqmTdLkkppPieOWqo9aWouAaMpQ9kWteMlv17NOUUr9Gp3fClo7khRnJ12T7j6ZVkfDXUpznTp570btBywDV848jyp2EceloYGiuOolWim8HCx77p22iulWjaixShPFcOi1mkG2i4Iur3QfGYeKpflxa1GXmvQLi1G99mH625dH5HGcQ63pObK1i7g3lXIQ9KcfyNRDfdBIDMHJaJf1uTKB4GJ9l4M7glS07h9QsU4gPueyNChzm6LmA9CFllzxy8ZA0Ys5qDnSuwaNobowMNXpbm1nlsxfXFtMolx6ghLuEw2s8f1jBxBQjQPwaGG90h5BbpoWGPk6dRsou5kdNxcLaFJKKXWTUR2h9P0P7p9UYRsQ6QqGNiwmGwXC7YFh1xCUdAibgjZbUYUKN6KVLemhZI6XYtX2l1w8d5jL8KJ5ZZpKhJ4JCfaVWCU2VRtUFgQOejKm6wjs6NcekTdKK4bOh5kr87cyRu0aDjEtfMSyZZTG5hIrEWcMq1IotzrxiRdmY5GYf2Kx0Br4K0rqrj8ZGa.ENDSALTPACKSIGNEDMESSAGE.&quot;</span>;
-
     <span class='kw'>static</span> <span class='ident'>ALPHABET</span> : <span class='kw-2'>&amp;</span><span class='lifetime'>&#39;static</span> <span class='ident'>str</span> <span class='op'>=</span> <span class='string'>&quot;0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz&quot;</span>;
 
+
     <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>find_header</span>() {
-        <span class='kw'>let</span> <span class='ident'>stripped</span> <span class='op'>=</span> <span class='ident'>strip_whitespace</span>(<span class='kw-2'>&amp;</span><span class='ident'>ARMORED_1</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>stripped</span>, <span class='ident'>STRIPPED_1</span>);
-        <span class='kw'>let</span> (<span class='ident'>inners</span>, <span class='ident'>meta</span>, <span class='ident'>range</span>) <span class='op'>=</span> <span class='ident'>assert_and_strip_header_and_footer</span>(<span class='kw-2'>&amp;</span><span class='ident'>stripped</span>).<span class='ident'>unwrap</span>();
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>meta</span>.<span class='ident'>messagetype</span>, <span class='ident'>SaltpackMessageType</span>::<span class='ident'>SIGNEDMESSAGE</span>);
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>range</span>, <span class='ident'>Range</span> {<span class='ident'>start</span> : <span class='number'>0</span>, <span class='ident'>end</span> : <span class='number'>664</span>});
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='op'>*</span><span class='ident'>inners</span>, <span class='ident'>STRIPPED_1</span>[<span class='number'>27</span>..<span class='number'>638</span>]);
-        <span class='kw'>let</span> <span class='ident'>rawdata</span> <span class='op'>=</span> <span class='ident'>convert_to_bytes</span>(<span class='kw-2'>&amp;</span><span class='ident'>inners</span>).<span class='ident'>unwrap</span>();
-        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>rawdata</span>.<span class='ident'>len</span>(), <span class='number'>454</span>);
+    <span class='kw'>fn</span> <span class='ident'>alphabet_</span>() {
+        <span class='kw'>for</span> (<span class='ident'>i</span>, <span class='ident'>c</span>) <span class='kw'>in</span> (<span class='ident'>ALPHABET</span>).<span class='ident'>as_bytes</span>().<span class='ident'>iter</span>().<span class='ident'>enumerate</span>() {
+            <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>alphabet</span>(<span class='ident'>i</span> <span class='kw'>as</span> <span class='ident'>u8</span>), <span class='op'>*</span><span class='ident'>c</span>);
+        }
     }
 
     <span class='attribute'>#[<span class='ident'>test</span>]</span>
-    <span class='kw'>fn</span> <span class='ident'>alphabet</span>() {
-        <span class='kw'>for</span> (<span class='ident'>i</span>, <span class='ident'>c</span>) <span class='kw'>in</span> (<span class='ident'>ALPHABET</span>).<span class='ident'>as_bytes</span>().<span class='ident'>iter</span>().<span class='ident'>enumerate</span>() {
-            <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>Base62Blocks</span>::<span class='ident'>dealphabet</span>(<span class='op'>*</span><span class='ident'>c</span>) <span class='kw'>as</span> <span class='ident'>usize</span>, <span class='ident'>i</span>);
+    <span class='kw'>fn</span> <span class='ident'>to_base62_with_spaces</span>() {
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>space_in</span> <span class='op'>=</span> <span class='number'>3</span>;
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>newline_in</span> <span class='op'>=</span> <span class='number'>3</span>;
+        <span class='kw'>let</span> <span class='ident'>data</span> : [<span class='ident'>u8</span> ; <span class='number'>32</span>] <span class='op'>=</span> [ <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>6</span>, <span class='number'>7</span>, <span class='number'>8</span>,
+                                 <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>6</span>, <span class='number'>7</span>, <span class='number'>8</span>,
+                                 <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>6</span>, <span class='number'>7</span>, <span class='number'>8</span>,
+                                 <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>6</span>, <span class='number'>7</span>, <span class='number'>8</span>, ];
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>out</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='string'>b&#39;A&#39;</span> ; <span class='number'>150</span>];
+        {
+            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>out_slice</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>out</span>[..];
+            <span class='kw'>let</span> <span class='ident'>written</span> <span class='op'>=</span> <span class='ident'>b32bytes_to_base62_formatted</span>(<span class='kw-2'>&amp;</span><span class='ident'>data</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>out_slice</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>space_in</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>newline_in</span>, <span class='boolval'>true</span>);
+            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>out_slice</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>out_slice</span>[<span class='ident'>written</span>..];
+            <span class='kw'>let</span> <span class='ident'>written</span> <span class='op'>=</span> <span class='ident'>b32bytes_to_base62_formatted</span>(<span class='kw-2'>&amp;</span><span class='ident'>data</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>out_slice</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>space_in</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>newline_in</span>, <span class='boolval'>true</span>);
+            <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>out_slice</span> <span class='op'>=</span> <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>out_slice</span>[<span class='ident'>written</span>..];
+            <span class='ident'>b32bytes_to_base62_formatted</span>(<span class='kw-2'>&amp;</span><span class='ident'>data</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>out_slice</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>space_in</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>newline_in</span>, <span class='boolval'>true</span>);
+        }
+        <span class='kw'>unsafe</span> {
+            <span class='kw'>let</span> <span class='ident'>s</span> <span class='op'>=</span> <span class='ident'>String</span>::<span class='ident'>from_utf8_unchecked</span>(<span class='ident'>out</span>);
+            <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>s</span> <span class='op'>==</span> <span class='string'>&quot;0Eo h211G4c8rWQ68g6 VHwCdRQSckQE9h6\nk6REalLOem0Eoh2 11G4c8rWQ68g6VH wCdRQSckQE9h6k6 REalLOem0Eoh211 G4c8rWQ68g6VHwC dRQSckQE9h6k6RE alLOemAAAAAAAAAAAA&quot;</span>);
         }
     }
+
+    <span class='attribute'>#[<span class='ident'>test</span>]</span>
+    <span class='kw'>fn</span> <span class='ident'>armoring_stream</span>() {
+        <span class='kw'>let</span> <span class='ident'>data</span> : [<span class='ident'>u8</span> ; <span class='number'>32</span>] <span class='op'>=</span> [ <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>6</span>, <span class='number'>7</span>, <span class='number'>8</span>,
+                                 <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>6</span>, <span class='number'>7</span>, <span class='number'>8</span>,
+                                 <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>6</span>, <span class='number'>7</span>, <span class='number'>8</span>,
+                                 <span class='number'>1</span>, <span class='number'>2</span>, <span class='number'>3</span>, <span class='number'>4</span>, <span class='number'>5</span>, <span class='number'>6</span>, <span class='number'>7</span>, <span class='number'>8</span>, ];
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>armoring_stream</span> <span class='op'>=</span> <span class='ident'>ArmoringStream</span>::<span class='ident'>new</span>(<span class='string'>&quot;RUST&quot;</span>, <span class='ident'>SaltpackMessageType</span>::<span class='ident'>ENCRYPTEDMESSAGE</span>).<span class='ident'>unwrap</span>();
+        <span class='kw'>let</span> <span class='ident'>len</span> <span class='op'>=</span> <span class='ident'>armoring_stream</span>.<span class='ident'>predict_armored_len</span>(<span class='ident'>data</span>.<span class='ident'>len</span>());
+        <span class='kw'>let</span> <span class='kw-2'>mut</span> <span class='ident'>out</span> <span class='op'>=</span> <span class='macro'>vec</span><span class='macro'>!</span>[<span class='number'>0u8</span>; <span class='ident'>len</span>];
+        <span class='kw'>let</span> (<span class='ident'>read</span>, <span class='ident'>written</span>) <span class='op'>=</span> <span class='ident'>armoring_stream</span>.<span class='ident'>armor</span>(<span class='kw-2'>&amp;</span><span class='ident'>data</span>[..], <span class='boolval'>true</span>, <span class='kw-2'>&amp;</span><span class='kw-2'>mut</span> <span class='ident'>out</span>[..]).<span class='ident'>unwrap</span>();
+        <span class='ident'>out</span>.<span class='ident'>resize</span>(<span class='ident'>written</span>, <span class='number'>0</span>);
+        <span class='kw'>let</span> <span class='ident'>s</span> <span class='op'>=</span> <span class='kw'>unsafe</span> { <span class='ident'>String</span>::<span class='ident'>from_utf8_unchecked</span>(<span class='ident'>out</span>) };
+        <span class='macro'>assert</span><span class='macro'>!</span>(<span class='ident'>armoring_stream</span>.<span class='ident'>is_done</span>());
+        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>read</span>, <span class='ident'>data</span>.<span class='ident'>len</span>());
+        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>written</span>, <span class='ident'>len</span>);
+        <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>s</span>, <span class='string'>&quot;BEGIN RUST SALTPACK ENCRYPTEDMESSAGE. 0Eoh211G4c8rWQ6 8g6VHwCdRQSckQE 9h6k6REalLOem. END RUST SALTPACK ENCRYPTEDMESSAGE.&quot;</span>);
+    }
+
 }
 </pre>
 </section>
