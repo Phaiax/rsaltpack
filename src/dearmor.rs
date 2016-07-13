@@ -1,9 +1,14 @@
+//! Removing base62 armor and returning binary data
+//!
+//! Function `dearmor(text, max)` searches for all saltpacks within `text`
+//! and returns a `Dearmored` for each of them.
+
 
 use regex::Regex;
 use ramp::Int;
 use std::cmp::min;
 use std::vec::Vec;
-use std::io::Read;
+//use std::io::Read;
 pub use std::ops::Range;
 pub use ::SaltpackMessageType;
 

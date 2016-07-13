@@ -13,3 +13,12 @@ impl<'a> Consumable for &'a mut [u8] {
         *self = &mut this[amt..];
     }
 }
+
+
+impl<'a> Consumable for &'a [u8] {
+    #[inline]
+    fn consume(&mut self, amt: usize) {
+        let this = std::mem::replace(self, & []);
+        *self = & this[amt..];
+    }
+}

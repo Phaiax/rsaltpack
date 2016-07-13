@@ -1,13 +1,65 @@
 //! Asymmetrically encrypt or sign data for multiple recipients using the saltpack format.
 //!
+//! Take a look at the [`Saltpack`][Saltpack] struct.
+//!
+//! [Saltpack]: struct.Saltpack.html
+//!
 //! # Usage
+//!
+//! ## Encrypt and armor (result only contains a-z A-Z 0-9 space and .)
+//!
+//! ```
+//! # use rsaltpack::KeyPair;
+//! # use rsaltpack::compose::{Saltpack, ArmoredSaltpack};
+//! let mut saltpack = Saltpack::encrypt(None, & vec![KeyPair::gen().p]);
+//! use std::io::Write;
+//! saltpack.write_all(b"I love you").unwrap();
+//! saltpack.flush().unwrap();
+//!
+//! let mut armored : ArmoredSaltpack = saltpack.armor("").unwrap();
+//! println!("{}", armored.to_string()); // read all
+//! // or use std::io::Read on armored to get ascii character as binary string.
+//! ```
+//!
+//! ## Binary data via stream interface
+//!
+//! Stream interface means to use `std::io::Write` to insert the plain text
+//! into the [Saltpack struct](struct.Saltpack.html) and to use `std::io::Reader`
+//! to read the encrypted data.
+//!
 //! ```
 //! use rsaltpack::KeyPair;
 //! use rsaltpack::compose::Saltpack;
 //! let recipients = vec![KeyPair::gen().p];
 //!
-//! let data = b"If I put a usb stick into my ass, \
-//!                     does it make me a cyborg already?";
+//! let data = b" The moment when, after many years
+//!               of hard work and a long voyage
+//!               you stand in the centre of your room,
+//!               house, half-acre, square mile, island, country,
+//!               knowing at last how you got there,
+//!               and say, I own this,
+//!
+//!               is the same moment when the trees unloose
+//!               their soft arms from around you,
+//!               the birds take back their language,
+//!               the cliffs fissure and collapse,
+//!               the air moves back from you like a wave
+//!               and you can't breathe.
+//!
+//!
+//!               No, they whisper.
+//!                You own nothing.
+//!
+//!               You were a visitor, time after time
+//!               climbing the hill, planting the flag, proclaiming.
+//!
+//!               We never belonged to you.
+//!
+//!               You never found us.
+//!
+//!               It was always the other way round.
+//!
+//!               by Margaret Atwood";
 //!
 //! // using None as first parameter for anonymous sender
 //! let mut saltpack = Saltpack::encrypt(None, &recipients);
@@ -53,31 +105,11 @@
 //! # assert!(saltpack.is_done()); // optional
 //! ```
 //!
-//! # ASCII armor (only a-z A-Z 0-9 and .)
-//!
-//! ```
-//! # use rsaltpack::KeyPair;
-//! # use rsaltpack::compose::Saltpack;
-//! let mut saltpack = Saltpack::encrypt(None, & vec![KeyPair::gen().p]);
-//! use std::io::Write;
-//! saltpack.write_all(b"secretData").unwrap();
-//! saltpack.flush().unwrap();
-//!
-//! let mut armored = saltpack.armor("").unwrap();
-//! println!("{}", armored.to_string()); // read all
-//! // or use std::io::Read on armored to get ascii character as binary string.
-//! ```
-//!
-//! Take a look at the [`Saltpack`][Saltpack] struct.
-//!
-//! [Saltpack]: struct.Saltpack.html
 
 use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::secretbox;
 use sodiumoxide::crypto::hash::hash;
 use sodiumoxide::crypto::auth;
-use rustc_serialize::Encodable;
-use rmp_serialize::Encoder;
 
 use serde::Serialize;
 use serde::bytes::ByteBuf;
@@ -89,14 +121,16 @@ use std::mem::size_of;
 use std::io::{Read, Write};
 use std::collections::VecDeque;
 use std::string::ToString;
+use std::cmp;
 use std;
 
 
-#[derive(RustcEncodable, PartialEq, Debug)]
+/// A recipient pair is a two-element list: [recipient public key, payload key box]
+#[derive(Serialize, PartialEq, Debug)]
 struct RecipSerializable(Vec<u8>, Vec<u8>);
-#[derive(RustcEncodable, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug)]
 struct HeaderSerializable(String, (u32, u32), u32, Vec<u8>, Vec<u8>, Vec<RecipSerializable>);
-#[derive(RustcEncodable, PartialEq, Debug)]
+#[derive(Serialize, PartialEq, Debug)]
 struct HeaderOuterSerializable(Vec<u8>);
 #[derive(Serialize, PartialEq, Debug)]
 struct PayloadPacketSerializable (Vec<Authenticator>, ByteBuf);
@@ -105,6 +139,10 @@ struct Authenticator(ByteBuf);
 
 use ::{Key, PublicKey, KeyPair, SaltpackMessageType, CBNonce, SBNonce};
 
+pub const CHUNK_SIZE_UNENCRYPTED : usize = 1_000_000;
+
+
+/// Main interface to create new saltpacks.
 pub struct Saltpack {
     header_hash : Option<Vec<u8>>,
     payload_key : Option<Key>,
@@ -213,8 +251,9 @@ impl Saltpack {
                                                  /*nonce*/&CBNonce(*b"saltpack_payload_key_box"),
                                                  /*p key*/&recip_key,
                                                  /*s key*/&eph_key.s);
-            let recip_pair = RecipSerializable(cryptobox_payloadkey_for_recipient,
-                                               Vec::from(&recip_key.0[..]));
+            // A recipient pair is a two-element list: [recipient public key, payload key box]
+            let recip_pair = RecipSerializable( Vec::from(&recip_key.0[..]),
+                                                cryptobox_payloadkey_for_recipient);
             bufsize_for_recipients += recip_pair.0.len() + recip_pair.1.len();
             recipients_list.push(recip_pair);
         }
@@ -237,20 +276,22 @@ impl Saltpack {
                         + header.5.len() * (size_of::<RecipSerializable>() + 2)
                         + bufsize_for_recipients
                         + 10; // backup;
-        let mut header_inner_mp = Vec::<u8>::with_capacity(bufsize);
+        let mut header_inner_messagepack = Vec::<u8>::with_capacity(bufsize);
 
-        header.encode(&mut Encoder::new(&mut header_inner_mp)).unwrap();
+        header.serialize(&mut Serializer::new(&mut header_inner_messagepack)).unwrap();
+        //header.encode(&mut Encoder::new(&mut header_inner_messagepack)).unwrap();
 
         // 7 Take the crypto_hash (SHA512) of the bytes from #6. This is the header hash.
-        let headerhash = hash(&header_inner_mp[..]);
+        let headerhash = hash(&header_inner_messagepack[..]);
         self.header_hash = Some(Vec::from(&headerhash.0[..]));
 
         // 8 Serialize the bytes from #6 again into a MessagePack bin object. These twice-encoded bytes are the header packet.
 
-        let mut header_outer_mp = Vec::<u8>::with_capacity(header_inner_mp.len() + 10);
-        let header_outer = HeaderOuterSerializable( header_inner_mp );
-        header_outer.encode(&mut Encoder::new(&mut header_outer_mp)).unwrap();
-        self.output_buffer.push_back(header_outer_mp);
+        let mut header_outer_messagepack = Vec::<u8>::with_capacity(header_inner_messagepack.len() + 10);
+        let header_outer = HeaderOuterSerializable( header_inner_messagepack );
+        header_outer.serialize(&mut Serializer::new(&mut header_outer_messagepack)).unwrap();
+        //header_outer.encode(&mut Encoder::new(&mut header_outer_messagepack)).unwrap();
+        self.output_buffer.push_back(header_outer_messagepack);
 
         // After generating the header, the sender computes the MAC keys, which will be used below to authenticate the payload:
         // 9 For each recipient, encrypt 32 zero bytes using crypto_box with the recipient's public key, the sender's long-term private key, and the first 24 bytes of the header hash from #8 as a nonce. Take the last 32 bytes of each box. These are the MAC keys.
@@ -264,7 +305,9 @@ impl Saltpack {
                                      /*nonce*/&nonce,
                                      /*p key*/&recip_key,
                                      /*s key*/&sender.s);
-            let mac = auth::Key::from_slice(&mac_box[0..32]).unwrap();
+            let mac_box_len = mac_box.len();
+            let mac = auth::Key::from_slice(&mac_box[(mac_box_len-32)..]).unwrap();
+
             // wipe mac_box
             for b in mac_box.iter_mut() { *b = 0; }
 
@@ -313,7 +356,7 @@ impl Saltpack {
         //$ println!("     Hash END");
 
         // 3 For each recipient, compute the crypto_auth (HMAC-SHA512, truncated to 32 bytes) of the hash from #2, using that recipient's MAC key.
-        let mut authenticators = Vec::new();
+        let mut authenticators = Vec::with_capacity(self.macs.len());
         let mut bufsize = secretbox_payload.len() + 12;
         //$ println!("       Auth BEGIN");
         for mac in self.macs.iter() {
@@ -333,7 +376,6 @@ impl Saltpack {
         //$ println!("          Encode BEGIN");
         let mut packet_messagepacked = Vec::<u8>::with_capacity(bufsize);
         //packet.encode(&mut Encoder::new(&mut packet_messagepacked)).unwrap();
-
         packet.serialize(&mut Serializer::new(&mut packet_messagepacked)).unwrap();
         //$ println!("          Encode END");
 
@@ -345,7 +387,7 @@ impl Saltpack {
     /// Tries to predict the length of all unwritten data.
     pub fn predict_len(&self) -> usize {
         let mut len = 0;
-        let secretbox_add = 16; // Todo: change to secretbox::MACBYTES if sodiumoxide releases
+        let secretbox_add = secretbox::MACBYTES;
         for i in &self.input_buffer {
             len += (auth::TAGBYTES + 2) * self.macs.len(); // incl 2 msgpack marker bytes
             len += i.len() + secretbox_add + 5; // incl max 5 msgpack marker bytes
@@ -365,11 +407,22 @@ impl Saltpack {
         let packetnumber_bytes = unsafe {
             std::slice::from_raw_parts(&packetnumber_big_endian as *const _ as *const u8, 8)
         };
-        for (pn, n) in packetnumber_bytes.iter().zip(nonce.iter_mut()) { *n = *pn; }
+        for (pn, n) in packetnumber_bytes.iter().zip(nonce.iter_mut().skip(16)) { *n = *pn; }
         SBNonce(nonce)
     }
 
-
+    /// Get the encrypted data in packets of max approximately 1MB (some packets may be significantly less).
+    /// Returns None, if no more data is currently available.
+    /// More data can be available at later times (after calls to `write()` or `flush()`)
+    ///
+    /// The `Read` trait (implemented for `Saltpack`) can be used alternatively to this method.
+    /// This method may have the advantage of avoiding copies.
+    pub fn get_next_chunk(&mut self) -> Option<Vec<u8>> {
+        if self.output_buffer.is_empty() {
+            self.encrypt_next_packet();
+        }
+        self.output_buffer.pop_front()
+    }
 }
 
 /// Will panic if not flushed or not all data read.
@@ -391,16 +444,23 @@ impl Drop for Saltpack {
 impl Write for Saltpack {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let total_input_len = buf.len();
+        // save input data in chunks of 1MB
+        // (input buffer is VecDeque<Vec<u8>>)
+
+        // fill last Vec in input_buffer until it has 1MB of data
         let buf = match self.input_buffer.back_mut() {
             Some(ref mut maybe_unfinished) => {
-                let missing = 1_000_000 - maybe_unfinished.len();
-                maybe_unfinished.extend_from_slice(&buf[0..missing]);
-                &buf[missing..]
+                let missing = CHUNK_SIZE_UNENCRYPTED - maybe_unfinished.len();
+                let take = cmp::min(missing, total_input_len);
+                maybe_unfinished.extend_from_slice(&buf[0..take]);
+                &buf[take..]
             },
             None => buf
         };
-        for chunk in buf.chunks(1_000_000) {
-            let mut b = Vec::with_capacity(1_000_000);
+
+        // then create new Vecs in input_buffer, each 1MB
+        for chunk in buf.chunks(CHUNK_SIZE_UNENCRYPTED) {
+            let mut b = Vec::with_capacity(CHUNK_SIZE_UNENCRYPTED);
             b.extend_from_slice(chunk);
             self.input_buffer.push_back(b);
         }
@@ -427,10 +487,13 @@ impl Read for Saltpack {
                 let written = {
                     let br = self.bytes_read_from_first_output_buffer_element;
                     let front = self.output_buffer.front().unwrap();
+                    // This `write()` will modify the range `buffer` is pointing to
                     try!(buffer.write(&front[br..]))
                 };
                 bytes_read += written;
                 self.bytes_read_from_first_output_buffer_element += written;
+
+                // chunk finished?
                 if self.output_buffer.front().unwrap().len() == self.bytes_read_from_first_output_buffer_element {
                     self.bytes_read_from_first_output_buffer_element = 0;
                     self.output_buffer.pop_front();
@@ -467,8 +530,11 @@ impl Read for ArmoredSaltpack {
     fn read(&mut self, mut buffer : &mut [u8]) -> std::io::Result<usize> {
         use util::Consumable;
         let mut bytes_read = 0;
+        let mut i = 0;
         while buffer.len() > 0 { // still place to write
+            i += 1;
             if self.saltpack.output_buffer.len() > 0 {
+                println!("buffer.len() {:?}", buffer.len());
                 // pipe already encrypted through armoring and let armor() directly write to buffer
                 let (read_from_front, written_into_buffer) = {
                     let br = self.saltpack.bytes_read_from_first_output_buffer_element;
@@ -478,6 +544,9 @@ impl Read for ArmoredSaltpack {
                         Err(msg) => { return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, msg)); }
                     }
                 };
+                println!("read_from_front {:?}", read_from_front);
+                println!("written_into_buffer {:?}", written_into_buffer);
+                println!("self.saltpack.last_bytes() {:?}", self.saltpack.last_bytes());
                 bytes_read += written_into_buffer;
                 buffer.consume(written_into_buffer);
                 self.saltpack.bytes_read_from_first_output_buffer_element += read_from_front;
@@ -487,6 +556,14 @@ impl Read for ArmoredSaltpack {
                     self.saltpack.bytes_read_from_first_output_buffer_element = 0;
                     self.saltpack.output_buffer.pop_front();
                 }
+                println!("buffer.len() after {:?}", buffer.len());
+                println!("len output buffer {:?}", self.saltpack.output_buffer.len());
+                if self.saltpack.output_buffer.len() > 0 {
+                    println!("self.saltpack.output_buffer.front().unwrap().len() {:?}", self.saltpack.output_buffer.front().unwrap().len());
+
+                }
+                println!("self.saltpack.bytes_read_from_first_output_buffer_element {:?}", self.saltpack.bytes_read_from_first_output_buffer_element);
+                if i == 10 { panic!("Holla"); }
                 continue; // write again from output buffer if not empty yet.
             } else if self.is_done() {
                 break; // finished completely
@@ -520,7 +597,8 @@ impl ArmoredSaltpack {
     pub fn to_string(&mut self) -> String {
         self.flush().unwrap();
         let bin_len = self.saltpack.predict_len();
-        let mut str_u8 = Vec::with_capacity(self.armoring_stream.predict_armored_len(bin_len));
+        let armored_len = self.armoring_stream.predict_armored_len(bin_len);
+        let mut str_u8 = Vec::with_capacity(armored_len);
         self.read_to_end(&mut str_u8).unwrap();
         assert!(self.is_done());
         unsafe { String::from_utf8_unchecked(str_u8) }
@@ -585,9 +663,9 @@ mod tests {
 
         let mut saltpack = Saltpack::encrypt(None, & vec![KeyPair::gen().p]);
         use std::io::Write;
-        saltpack.write_all(b"secretData").unwrap();
+        saltpack.write_all(b"I love you").unwrap();
         saltpack.flush().unwrap();
-                let mut armored = saltpack.armor("").unwrap();
+        let mut armored = saltpack.armor("").unwrap();
         println!("{}", armored.to_string()); // read all
     }
 

@@ -4,14 +4,14 @@ version = "0.1.0"
 authors = ["Phaiax <phaiax-rsaltpack@invisibletower.de>"]
 
 [dependencies]
-serde = "^0.6"
-serde_macros = "^0.6"
+serde = "^0.7"
+serde_macros = "^0.7"
 rmp = "*"
 rmp-serde = "*"
 rmp-serialize = "*"
 rustc-serialize = "*"
 ramp = { path = "crates/ramp" }
-byteorder = "0.4"
+byteorder = "^0.5"
 regex="*"
-regex_macros = "0.1"
-sodiumoxide = "0.0.9"
+regex_macros = "^0.1"
+sodiumoxide = "0.0.10"
