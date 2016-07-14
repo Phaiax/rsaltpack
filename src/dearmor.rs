@@ -6,14 +6,14 @@
 //! Not that the returned data is still encrypted.
 //!
 //! ```
-//! use rsaltpack::dearmor::{dearmor, Stripped};
+//! use rsaltpack::dearmor::{dearmor, Stripped, Dearmored};
 //! use rsaltpack::SaltpackMessageType;
 //! use std::ops::Range;
 //!
 //! let encoded = "Hey Friend. BEGIN RUST SALTPACK ENCRYPTEDMESSAGE. 0Eoh211G4c8rWQ6 8g6VHwCdRQSckQE 9h6k6REalLOem. END RUST SALTPACK ENCRYPTEDMESSAGE.";
 //!
 //! let saltpacks = dearmor(Stripped::from_utf8(encoded), 1).unwrap();
-//! let decoded : Dearmored = saltpacks.first().unwrap();
+//! let decoded : &Dearmored = saltpacks.first().unwrap();
 //!
 //! assert_eq!(&decoded.meta.vendor, "RUST");
 //! assert_eq!(decoded.meta.messagetype, SaltpackMessageType::ENCRYPTEDMESSAGE);

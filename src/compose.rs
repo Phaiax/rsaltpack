@@ -116,6 +116,7 @@ use serde::bytes::ByteBuf;
 use rmp_serde::Serializer;
 
 use ::armor;
+use ::util;
 
 use std::mem::size_of;
 use std::io::{Read, Write};
@@ -127,15 +128,11 @@ use std;
 
 /// A recipient pair is a two-element list: [recipient public key, payload key box]
 #[derive(Serialize, PartialEq, Debug)]
-struct RecipSerializable(Vec<u8>, Vec<u8>);
+struct RecipSerializable(ByteBuf, ByteBuf);
 #[derive(Serialize, PartialEq, Debug)]
-struct HeaderSerializable(String, (u32, u32), u32, Vec<u8>, Vec<u8>, Vec<RecipSerializable>);
+struct HeaderSerializable(String, (u32, u32), u32, ByteBuf, ByteBuf, Vec<RecipSerializable>);
 #[derive(Serialize, PartialEq, Debug)]
-struct HeaderOuterSerializable(Vec<u8>);
-#[derive(Serialize, PartialEq, Debug)]
-struct PayloadPacketSerializable (Vec<Authenticator>, ByteBuf);
-#[derive(Serialize, PartialEq, Debug)]
-struct Authenticator(ByteBuf);
+struct PayloadPacketSerializable (Vec<ByteBuf>, ByteBuf);
 
 use ::{Key, PublicKey, KeyPair, SaltpackMessageType, CBNonce, SBNonce};
 
@@ -252,8 +249,8 @@ impl Saltpack {
                                                  /*p key*/&recip_key,
                                                  /*s key*/&eph_key.s);
             // A recipient pair is a two-element list: [recipient public key, payload key box]
-            let recip_pair = RecipSerializable( Vec::from(&recip_key.0[..]),
-                                                cryptobox_payloadkey_for_recipient);
+            let recip_pair = RecipSerializable( ByteBuf::from(Vec::from(&recip_key.0[..])),
+                                                ByteBuf::from(cryptobox_payloadkey_for_recipient));
             bufsize_for_recipients += recip_pair.0.len() + recip_pair.1.len();
             recipients_list.push(recip_pair);
         }
@@ -263,8 +260,8 @@ impl Saltpack {
         let header = HeaderSerializable ( "saltpack".to_string(),
                                           (1, 0),
                                           mode.to_int(),
-                                          Vec::from(&eph_key.p.0[..]),
-                                          secretbox_sender_p,
+                                          ByteBuf::from(Vec::from(&eph_key.p.0[..])),
+                                          ByteBuf::from(secretbox_sender_p),
                                           recipients_list);
 
         // 6 Serialize the list from #5 into a MessagePack array object.
@@ -287,9 +284,8 @@ impl Saltpack {
 
         // 8 Serialize the bytes from #6 again into a MessagePack bin object. These twice-encoded bytes are the header packet.
 
-        let mut header_outer_messagepack = Vec::<u8>::with_capacity(header_inner_messagepack.len() + 10);
-        let header_outer = HeaderOuterSerializable( header_inner_messagepack );
-        header_outer.serialize(&mut Serializer::new(&mut header_outer_messagepack)).unwrap();
+        let mut header_outer_messagepack = Vec::with_capacity(header_inner_messagepack.len() + 10);
+        ByteBuf::from(header_inner_messagepack).serialize(&mut Serializer::new(&mut header_outer_messagepack)).unwrap();
         //header_outer.encode(&mut Encoder::new(&mut header_outer_messagepack)).unwrap();
         self.output_buffer.push_back(header_outer_messagepack);
 
@@ -330,7 +326,7 @@ impl Saltpack {
         let next = self.input_buffer.pop_front().unwrap();
         let payload = &next[..];
 
-        let nonce = Self::make_nonce(self.next_packet_number);
+        let nonce = util::make_payloadpacket_nonce(self.next_packet_number);
         self.next_packet_number += 1;
 
         // The payload secretbox is a NaCl secretbox containing a chunk of the plaintext bytes, max size 1 MB. It's encrypted with the payload key.
@@ -362,7 +358,7 @@ impl Saltpack {
         for mac in self.macs.iter() {
             let tag = auth::authenticate(&packethash.0, &mac);
             bufsize += tag.0.len() + 2;
-            authenticators.push(Authenticator(ByteBuf::from(Vec::from(&tag.0[..]))));
+            authenticators.push(ByteBuf::from(Vec::from(&tag.0[..])));
         }
 
         //$ println!("       Auth END");
@@ -375,7 +371,6 @@ impl Saltpack {
 
         //$ println!("          Encode BEGIN");
         let mut packet_messagepacked = Vec::<u8>::with_capacity(bufsize);
-        //packet.encode(&mut Encoder::new(&mut packet_messagepacked)).unwrap();
         packet.serialize(&mut Serializer::new(&mut packet_messagepacked)).unwrap();
         //$ println!("          Encode END");
 
@@ -399,17 +394,7 @@ impl Saltpack {
         len
     }
 
-    /// The nonce is saltpack_ploadsbNNNNNNNN where NNNNNNNN is the packet numer
-    ///  as an 8-byte big-endian unsigned integer. The first payload packet is number 0.
-    fn make_nonce(packetnumber : u64) -> SBNonce {
-        let mut nonce : [u8; 24] = *b"saltpack_ploadsbNNNNNNNN";
-        let packetnumber_big_endian = packetnumber.to_be();
-        let packetnumber_bytes = unsafe {
-            std::slice::from_raw_parts(&packetnumber_big_endian as *const _ as *const u8, 8)
-        };
-        for (pn, n) in packetnumber_bytes.iter().zip(nonce.iter_mut().skip(16)) { *n = *pn; }
-        SBNonce(nonce)
-    }
+
 
     /// Get the encrypted data in packets of max approximately 1MB (some packets may be significantly less).
     /// Returns None, if no more data is currently available.

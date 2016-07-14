@@ -15,8 +15,6 @@ fn main() {
                     &vec![recipient.p], // sender only knows public key
                     data);
 
-    println!("{:?}", email);
-
     // Retrieve
     use rsaltpack::parse;
     let mut read_email = &email[..];
