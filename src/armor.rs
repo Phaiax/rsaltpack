@@ -106,10 +106,10 @@ enum InBuffer {
     }
 }
 
-// The base62 scheme is based on blocks with length of 32 byte of binary data
-const BYTES_PER_BLOCK: usize = 32;
+/// The base62 scheme is based on blocks with length of 32 byte of binary data
+pub const BYTES_PER_BLOCK: usize = 32;
 /// One block of 32 byte will be converted into 43 characters, if it is not the last block.
-const CHARS_PER_BLOCK: usize = 43;
+pub const CHARS_PER_BLOCK: usize = 43;
 /// The armored string will contain a space every 15 characters.
 pub const SPACE_EVERY: usize = 15;
 /// The armored string will contain a newline instead of a space every 200 words.

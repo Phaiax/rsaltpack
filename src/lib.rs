@@ -1,5 +1,5 @@
 
-#![feature(custom_derive, plugin, alloc, test)]
+#![feature(custom_derive, plugin, alloc, test, try_from)]
 #![plugin(serde_macros)]
 #![plugin(regex_macros)]
 
@@ -29,6 +29,8 @@ pub use sodiumoxide::crypto::secretbox::Key;
 pub use sodiumoxide::crypto::secretbox::Nonce as SBNonce;
 
 use sodiumoxide::crypto::box_;
+use std::string::ToString;
+use std::convert::TryFrom;
 
 pub struct KeyPair{ pub p : PublicKey, pub s : SecretKey }
 
@@ -42,7 +44,7 @@ impl KeyPair {
 
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SaltpackMessageType {
     ENCRYPTEDMESSAGE,
     SIGNEDMESSAGE,
@@ -57,15 +59,43 @@ impl SaltpackMessageType {
             SaltpackMessageType::DETACHEDSIGNATURE => 2
         }
     }
+
+    pub fn to_str(&self) -> &'static str {
+        match *self {
+            SaltpackMessageType::ENCRYPTEDMESSAGE => "ENCRYPTEDMESSAGE",
+            SaltpackMessageType::SIGNEDMESSAGE => "SIGNEDMESSAGE",
+            SaltpackMessageType::DETACHEDSIGNATURE => "DETACHEDSIGNATURE"
+        }
+    }
 }
 
-use std::string::ToString;
 impl ToString for SaltpackMessageType {
     fn to_string(&self) -> String {
-        match *self {
-            SaltpackMessageType::ENCRYPTEDMESSAGE => "ENCRYPTEDMESSAGE".to_string(),
-            SaltpackMessageType::SIGNEDMESSAGE => "SIGNEDMESSAGE".to_string(),
-            SaltpackMessageType::DETACHEDSIGNATURE => "DETACHEDSIGNATURE".to_string()
+        self.to_str().to_string()
+    }
+}
+
+
+impl<'a> TryFrom<&'a str> for SaltpackMessageType {
+    type Err = String;
+    fn try_from(ascii : &str) -> Result<Self, Self::Err> {
+        match ascii {
+            "ENCRYPTEDMESSAGE" => Ok(SaltpackMessageType::ENCRYPTEDMESSAGE),
+            "SIGNEDMESSAGE" => Ok(SaltpackMessageType::SIGNEDMESSAGE),
+            "DETACHEDSIGNATURE" => Ok(SaltpackMessageType::DETACHEDSIGNATURE),
+            e @ _ => Err(format!("No valid saltpack type: {}", e).to_string())
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a [u8]> for SaltpackMessageType {
+    type Err = String;
+    fn try_from(ascii : &[u8]) -> Result<Self, Self::Err> {
+        match ascii {
+            b"ENCRYPTEDMESSAGE" => Ok(SaltpackMessageType::ENCRYPTEDMESSAGE),
+            b"SIGNEDMESSAGE" => Ok(SaltpackMessageType::SIGNEDMESSAGE),
+            b"DETACHEDSIGNATURE" => Ok(SaltpackMessageType::DETACHEDSIGNATURE),
+            e @ _ => Err(format!("No valid saltpack type: {}", String::from_utf8_lossy(e)).to_string())
         }
     }
 }

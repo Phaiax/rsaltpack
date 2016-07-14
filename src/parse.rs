@@ -178,12 +178,13 @@ mod tests {
 
     use super::*;
     use dearmor::dearmor;
+    use dearmor::Stripped;
 
     #[test]
     fn it_works() {
-        let raw_saltpacks = dearmor(&ARMORED_2, 1).unwrap();
+        let raw_saltpacks = dearmor(Stripped::from_utf8(&ARMORED_2), 1).unwrap();
         let pack1 = raw_saltpacks.get(0).unwrap();
-        let mut reader : &[u8] = pack1.binary.as_slice();
+        let mut reader : &[u8] = pack1.raw_bytes.as_slice();
         let header = read_and_assert_header_v_1_0(&mut reader).unwrap();
 
         assert_eq!(header.mode, SaltpackMessageType::ENCRYPTEDMESSAGE);
