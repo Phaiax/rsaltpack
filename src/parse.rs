@@ -7,6 +7,8 @@ use rmp::decode;
 use rmp::value::{Value, Integer};
 use std::char::from_u32;
 
+use sodiumoxide::crypto::hash::hash;
+
 #[derive(Debug)]
 pub struct Recipient {
     recipient_pub: Vec<u8>,
@@ -28,71 +30,88 @@ pub enum ParseError{
     NotWellFormed(String),
 }
 
+fn peel_outer_messagepack_encoding(mut raw: &mut R) -> Result<Vec<u8>, ParseError>
+  where R: Read {
+    match decode::read_value(&mut raw) {
+        Ok(Value::Binary(bin)) => Ok(bin),
+        Err(s) => Err(ParseError::NotWellFormed(format!("Not a messagepack stream. {}", s))),
+        _ => Err(ParseError::NotWellFormed("No nested messagepack found.".to_string()))
+    }
+}
+
 pub fn read_and_assert_header_v_1_0<R>(mut raw: &mut R) -> Result<SaltpackHeader10, ParseError>
-  where R: Read
-{
-        let nested_binary : Vec<u8> = match decode::read_value(&mut raw) {
-            Ok(Value::Binary(bin)) => bin,
-            Err(s) => return Err(ParseError::NotWellFormed(format!("Not a messagepack stream. {}", s))),
-            _ => return Err(ParseError::NotWellFormed("No nested messagepack found.".to_string()))
-        };
-
-        let mut reader : &[u8] = nested_binary.as_slice();
-
-        let arr : Vec<Value> = match decode::read_value(&mut reader) {
-            Ok(Value::Array(arr)) => arr,
-            Err(s) => return Err(ParseError::NotWellFormed(format!("Nested binary is not a messagepack stream. {}", s))),
-            _ => return Err(ParseError::NotWellFormed("No nested header messagepack is not of type array.".to_string()))
-        };
-
-        if arr.len() < 2 {
-            return Err(ParseError::NotWellFormed(format!("Header messagepack array to short. ({}<2)", arr.len())));
-        }
-
-        let saltpack_str = match arr.get(0).unwrap().clone() {
-            Value::String(e) => e,
-            _ => return Err(ParseError::NotWellFormed("First header array element is not of type string.".to_string()))
-        };
-
-        if saltpack_str != "saltpack" {
-            return Err(ParseError::NotWellFormed(format!("Header magic string should be 'saltpack' but is {}", saltpack_str)));
-        }
-
-        let version_arr = match arr.get(1).unwrap().clone() {
-            Value::Array(arr) => arr,
-            _ =>  return Err(ParseError::NotWellFormed(format!("Header version field is not of type array")))
-        };
-
-        if version_arr.len() != 2 {
-            return Err(ParseError::NotWellFormed("Header version field is not of type array[2]".to_string()));
-        }
-
-        let version_major = match version_arr.get(0).unwrap().clone() {
-            Value::Integer(Integer::U64(i)) => i,
-            _ =>  return Err(ParseError::NotWellFormed(format!("Header version field[0] is not of type integer"))),
-        };
-
-        let version_minor = match version_arr.get(1).unwrap().clone() {
-            Value::Integer(Integer::U64(i)) => i,
-            _ =>  return Err(ParseError::NotWellFormed(format!("Header version field[1] is not of type integer"))),
-        };
-
-        if version_major != 1 || version_minor != 0 {
-            return Err(ParseError::WrongSaltpackVersion(format!("Saltpack version {}.{} found. This is the decoder for Version 1.0", version_major, version_minor), version_major, version_minor));
-        }
-
-        if arr.len() < 5 {
-            return Err(ParseError::NotWellFormed(format!("Header messagepack array to short. ({}<5)", arr.len())));
-        }
+  where R: Read {
 
 
-        let mode = match arr.get(2).unwrap().clone() {
-            Value::Integer(Integer::U64(i)) if i == 0 => SaltpackMessageType::ENCRYPTEDMESSAGE,
-            Value::Integer(Integer::U64(i)) if i == 1 => SaltpackMessageType::SIGNEDMESSAGE,
-            Value::Integer(Integer::U64(i)) if i == 2 => SaltpackMessageType::DETACHEDSIGNATURE,
-            Value::Integer(Integer::U64(i)) => return Err(ParseError::UnknownMode(format!("Unknown saltpack mode. {}", i), i)),
-            _ =>  return Err(ParseError::NotWellFormed(format!("Header mode field[2] is not of type integer")))
-        };
+    // 1 Deserialize the header bytes from the message stream using MessagePack. (What's on the wire is twice-encoded, so the result of unpacking will be once-encoded bytes.)
+    let nested_binary : Vec<u8> = try!(peel_outer_messagepack_encoding(&mut raw));
+
+    // 2 Compute the crypto_hash (SHA512) of the bytes from #1 to give the header hash.
+    let headerhash = hash(&header_inner_messagepack[..]);
+
+    // 3 Deserialize the bytes from #1 again using MessagePack to give the header list.
+    let mut reader : &[u8] = nested_binary.as_slice();
+
+    // 3.1 retrieve array as `arr`
+    let arr : Vec<Value> = match decode::read_value(&mut reader) {
+        Ok(Value::Array(arr)) => arr,
+        Err(s) => return Err(ParseError::NotWellFormed(format!("Nested binary is not a messagepack stream. {}", s))),
+        _ => return Err(ParseError::NotWellFormed("Nested header messagepack is not of type array.".to_string()))
+    };
+
+    if arr.len() < 2 {
+        return Err(ParseError::NotWellFormed(format!("Header messagepack array to short. ({}<2)", arr.len())));
+    }
+
+    // 4 Sanity check the format name, version, and mode.
+    // 4.1 check first array element to be the string "saltpack"
+    let saltpack_str = match arr.get(0).unwrap().clone() {
+        Value::String(e) => e,
+        _ => return Err(ParseError::NotWellFormed("First header array element is not of type string.".to_string()))
+    };
+
+    if saltpack_str != "saltpack" {
+        return Err(ParseError::NotWellFormed(format!("Header magic string should be 'saltpack' but is {}", saltpack_str)));
+    }
+
+    // 4.2.1 check second array element to be version number
+    let version_arr = match arr.get(1).unwrap().clone() {
+        Value::Array(arr) => arr,
+        _ =>  return Err(ParseError::NotWellFormed(format!("Header version field is not of type array")))
+    };
+
+    if version_arr.len() != 2 {
+        return Err(ParseError::NotWellFormed("Header version field is not of type array[2]".to_string()));
+    }
+
+    let version_major = match version_arr.get(0).unwrap().clone() {
+        Value::Integer(Integer::U64(i)) => i,
+        _ =>  return Err(ParseError::NotWellFormed(format!("Header version field[0] is not of type integer"))),
+    };
+
+    let version_minor = match version_arr.get(1).unwrap().clone() {
+        Value::Integer(Integer::U64(i)) => i,
+        _ =>  return Err(ParseError::NotWellFormed(format!("Header version field[1] is not of type integer"))),
+    };
+
+    // 4.2.2 check version number to be [1 0]
+    if version_major != 1 || version_minor != 0 {
+        return Err(ParseError::WrongSaltpackVersion(format!("Saltpack version {}.{} found. This is the decoder for Version 1.0", version_major, version_minor), version_major, version_minor));
+    }
+
+    // We got the correct version, so we can assume more header fields
+    if arr.len() < 5 {
+        return Err(ParseError::NotWellFormed(format!("Header messagepack array to short. ({}<5)", arr.len())));
+    }
+
+    // 4.2.3 Check mode
+    let mode = match arr.get(2).unwrap().clone() {
+        Value::Integer(Integer::U64(i)) if i == 0 => SaltpackMessageType::ENCRYPTEDMESSAGE,
+        Value::Integer(Integer::U64(i)) if i == 1 => SaltpackMessageType::SIGNEDMESSAGE,
+        Value::Integer(Integer::U64(i)) if i == 2 => SaltpackMessageType::DETACHEDSIGNATURE,
+        Value::Integer(Integer::U64(i)) => return Err(ParseError::UnknownMode(format!("Unknown saltpack mode. {}", i), i)),
+        _ =>  return Err(ParseError::NotWellFormed(format!("Header mode field[2] is not of type integer")))
+    };
 
         let eph_pub = match arr.get(3).unwrap().clone() {
             Value::Binary(bin) => bin,
