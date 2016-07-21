@@ -3,9 +3,9 @@ extern crate rsaltpack;
 fn main() {
 
     // Stakeholders
-    use rsaltpack::KeyPair;
-    let sender = KeyPair::gen();
-    let recipient = KeyPair::gen();
+    use rsaltpack::key::EncryptionKeyPair;
+    let sender = EncryptionKeyPair::gen();
+    let recipient = EncryptionKeyPair::gen();
     let data = b"The secret passage is behind shelf 13";
 
     // Compose

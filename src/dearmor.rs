@@ -265,7 +265,7 @@ fn make_condensed_footer(vendor : &[u8], typ : SaltpackMessageType) -> Vec<u8> {
     footer.write_all(b".END").unwrap();
     footer.write_all(vendor).unwrap();
     footer.write_all(b"SALTPACK").unwrap();
-    footer.write_all(typ.to_str().as_bytes()).unwrap();
+    footer.write_all(typ.to_condensed_str().as_bytes()).unwrap();
     footer.write_all(b".").unwrap();
     footer
 }

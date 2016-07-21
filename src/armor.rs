@@ -541,7 +541,7 @@ mod tests {
         assert!(armoring_stream.is_done());
         assert_eq!(read, data.len());
         assert_eq!(written, len);
-        assert_eq!(s, "BEGIN RUST SALTPACK ENCRYPTEDMESSAGE. 0Eoh211G4c8rWQ6 8g6VHwCdRQSckQE 9h6k6REalLOem. END RUST SALTPACK ENCRYPTEDMESSAGE.");
+        assert_eq!(s, "BEGIN RUST SALTPACK ENCRYPTED MESSAGE. 0Eoh211G4c8rWQ6 8g6VHwCdRQSckQE 9h6k6REalLOem. END RUST SALTPACK ENCRYPTED MESSAGE.");
     }
 
     #[test]
@@ -560,7 +560,7 @@ mod tests {
             // do not deliver enough data to make a block
             let (read, written) = armoring_stream.armor(&data[0..15], false, &mut out_buf).unwrap();
             assert_eq!(read, 15);
-            let header_len = "BEGIN RUST SALTPACK ENCRYPTEDMESSAGE. ".len();
+            let header_len = "BEGIN RUST SALTPACK ENCRYPTED MESSAGE. ".len();
             assert_eq!(written, header_len);
             out_buf.consume(written);
 
@@ -590,7 +590,7 @@ mod tests {
             // now add 0 new bytes but use the 25 bytes from the in_buffer for the last not full block
             let (read, written) = armoring_stream.armor(&data[0..0], true, &mut out_buf).unwrap();
             assert_eq!(read, 0);
-            assert_eq!(written, 70);
+            assert_eq!(written, 71);
             out_buf.consume(written);
         }
 

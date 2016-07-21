@@ -6,9 +6,9 @@
 //!
 //! ```
 //! // Stakeholders
-//! use rsaltpack::KeyPair;
-//! let sender = KeyPair::gen();
-//! let recipient = KeyPair::gen();
+//! use rsaltpack::key::EncryptionKeyPair;
+//! let sender = EncryptionKeyPair::gen();
+//! let recipient = EncryptionKeyPair::gen();
 //! let data = b"The secret passage is behind shelf 13";
 //!
 //! // Compose
@@ -50,7 +50,8 @@ use sodiumoxide::crypto::hash::sha512::{hash, Digest};
 use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::secretbox;
 use sodiumoxide::crypto::auth;
-use ::{SecretKey, Key, PublicKey, CBNonce, SBNonce, SaltpackMessageType};
+use ::{CBNonce, SBNonce, SaltpackMessageType};
+use ::key::{EncryptionSecretKey, EncryptionPublicKey, Key};
 
 
 
@@ -136,7 +137,7 @@ impl SaltpackHeader {
 
     /// Verifys header for an encrypted saltpack.
     /// Panics if `!self.is_mode_encryption()`.
-    pub fn verify(&mut self, recipient_priv_key : &SecretKey) -> Result<SaltpackDecrypter, EncryptionHeaderVerifyError> {
+    pub fn verify(&mut self, recipient_priv_key : &EncryptionSecretKey) -> Result<SaltpackDecrypter, EncryptionHeaderVerifyError> {
         match *self {
             SaltpackHeader::Version10(SaltpackHeader10::Encryption(ref mut e))
                 => e.verify(&recipient_priv_key)
@@ -259,14 +260,14 @@ fn check_mode(arr: &Vec<Value>) -> Result<SaltpackMessageType, ParseError> {
     }
 }
 
-fn read_ephemeral_public_key(arr: &Vec<Value>) -> Result<PublicKey, ParseError> {
+fn read_ephemeral_public_key(arr: &Vec<Value>) -> Result<EncryptionPublicKey, ParseError> {
     let eph_pub = match arr.get(3).unwrap().clone() {
         Value::Binary(bin) => bin,
         _ =>  return Err(ParseError::NotWellFormed(
                           format!("Header ephemeral public key field[3] is not of type binary"))),
     };
 
-    let eph_pub_ = PublicKey::from_slice(&eph_pub[..]);
+    let eph_pub_ = EncryptionPublicKey::from_slice(&eph_pub[..]);
 
     if eph_pub_.is_none() {
         return Err(ParseError::NotWellFormed(
@@ -313,7 +314,7 @@ fn get_recipient(recipient: &Value) -> Result<Recipient, ParseError> {
         _ =>  return Err(ParseError::NotWellFormed(format!("Header recipient public key is not of type binary."))),
     };
 
-    let recipient_pub_key_ = PublicKey::from_slice(&recipient_pub_key[..]);
+    let recipient_pub_key_ = EncryptionPublicKey::from_slice(&recipient_pub_key[..]);
 
     if recipient_pub_key_.is_none() {
         return Err(ParseError::NotWellFormed(
@@ -401,7 +402,7 @@ impl SaltpackHeader10 {
 #[derive(Debug)]
 /// Information from saltpack header (mode=encryption, version=1.0)
 pub struct SaltpackEncryptionHeader10 {
-    eph_pub : PublicKey,
+    eph_pub : EncryptionPublicKey,
     sender_secretbox : Vec<u8>,
     recipients : Vec<Recipient>,
     header_hash : Digest,
@@ -410,7 +411,7 @@ pub struct SaltpackEncryptionHeader10 {
 #[derive(Debug)]
 /// Recipient information from saltpack header (mode=encryption)
 struct Recipient {
-    recipient_pub: PublicKey,
+    recipient_pub: EncryptionPublicKey,
     payloadkey_cryptobox : Vec<u8>
 }
 
@@ -426,7 +427,7 @@ impl SaltpackEncryptionHeader10 {
     /// Searches the recipients for the current recipient
     /// If found, decrypt the sender public key.
     /// Prepare for decrypting of payload packets.
-    pub fn verify(&self, recipient_priv_key : &SecretKey) -> Result<SaltpackDecrypter10, EncryptionHeaderVerifyError> {
+    pub fn verify(&self, recipient_priv_key : &EncryptionSecretKey) -> Result<SaltpackDecrypter10, EncryptionHeaderVerifyError> {
         // 5 Precompute the ephemeral shared secret using crypto_box_beforenm with the ephemeral public key and the recipient's private key.
         let precomputed_key = box_::precompute(&self.eph_pub, &recipient_priv_key);
 
@@ -467,7 +468,7 @@ impl SaltpackEncryptionHeader10 {
         }
         let sender_pub_key_ = sender_pub_key_.unwrap();
 
-        let sender_pub_key = PublicKey::from_slice(&sender_pub_key_[..]);
+        let sender_pub_key = EncryptionPublicKey::from_slice(&sender_pub_key_[..]);
         if sender_pub_key.is_none() {
             return Err(EncryptionHeaderVerifyError::NotWellFormed(
                         format!("Sender public key has wrong format. (has {} bytes, expected {})",
@@ -522,7 +523,7 @@ impl SaltpackEncryptionHeader10 {
 /// [`read_next_payload_packet()`]: struct.SaltpackDecrypter10.html#method.read_next_payload_packet
 /// [`concat()`]: fn.concat.html
 pub struct SaltpackDecrypter10 {
-    pub sender : Option<PublicKey>,
+    pub sender : Option<EncryptionPublicKey>,
     header_hash : Digest,
     mac : auth::Key,
     packet_number : u64,
@@ -658,11 +659,15 @@ impl SaltpackDecrypter10 {
 }
 
 /// Removes the outer vector by concating the inner vectors.
-pub fn concat(chunks : Vec<Vec<u8>>) -> Vec<u8> {
+/// Zeros out the old plaintext data before dropping the input
+pub fn concat(mut chunks : Vec<Vec<u8>>) -> Vec<u8> {
     let len = chunks.iter().fold(0, |l, inner| l + inner.len());
     let mut ret = Vec::with_capacity(len);
-    for inner in chunks {
+    for mut  inner in chunks.iter_mut() {
         ret.write_all(&inner[..]).unwrap();
+        for c in inner.iter_mut() {
+            *c = 0;
+        }
     }
     ret
 }
@@ -694,16 +699,42 @@ mod tests {
     use super::*;
     use dearmor::dearmor;
     use dearmor::Stripped;
+    use ::SaltpackMessageType;
 
     #[test]
-    fn it_works() {
+    fn test_v10() {
         let raw_saltpacks = dearmor(Stripped::from_utf8(&ARMORED_2), 1).unwrap();
         let pack1 = raw_saltpacks.get(0).unwrap();
         let mut reader : &[u8] = pack1.raw_bytes.as_slice();
         let header = SaltpackHeader10::read_header(&mut reader).unwrap();
-
         //assert_eq!(header.mode, SaltpackMessageType::ENCRYPTEDMESSAGE);
         //assert_eq!(header.recipients.len(), 3);
+        //if let SaltpackHeader10::Encryption(enc_header) = header {
+            //enc_header.verify()
+        //}
+
+    }
+
+    #[test]
+    fn test_real_keybase_msg() {
+
+    }
+
+    #[test]
+    fn concat_does_zeroing() {
+        let test_ptr;
+        {
+            let data1 = vec![1u8,2,3,4,5,6];
+            let data2 = vec![1  ,2,3,4,5,6];
+            test_ptr = data1.as_ptr();
+            let multi = vec![data1, data2];
+            assert_eq!(3, unsafe { *(test_ptr.offset(2)) });
+            let cat = concat(multi);
+            assert_eq!(*&cat[8], 3);
+            // drop everything
+        }
+        assert_eq!(0, unsafe { *(test_ptr.offset(2)) });
+        assert_eq!(0, unsafe { *(test_ptr.offset(4)) });
     }
 
 }
