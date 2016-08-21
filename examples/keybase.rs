@@ -11,8 +11,8 @@ fn main() {
     let data = b"The secret passage is behind shelf 13\n";
 
     // Compose
-    use rsaltpack::compose;
-    let email = compose::encrypt_and_armor(
+    use rsaltpack::encrypt;
+    let email = encrypt::encrypt_and_armor(
                     Some(&sender),
                     &vec![recipient], // sender only knows public key
                     data,

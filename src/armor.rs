@@ -6,7 +6,7 @@
 //! ## With encryption
 //!
 //! Do not use anything of this module. Instead use the [armor() method of
-//! struct Saltpack](../compose/struct.Saltpack.html#method.armor).
+//! struct Saltpack](../encrypt/struct.Saltpack.html#method.armor).
 //!
 //! You may want to use the method [valid_vendor()](fn.valid_vendor.html).
 //!

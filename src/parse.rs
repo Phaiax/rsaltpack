@@ -12,8 +12,8 @@
 //! let data = b"The secret passage is behind shelf 13";
 //!
 //! // Compose
-//! use rsaltpack::compose;
-//! let email = compose::encrypt_to_binary(
+//! use rsaltpack::encrypt;
+//! let email = encrypt::encrypt_to_binary(
 //!                 Some(&sender),
 //!                 &vec![recipient.p], // sender only knows public key
 //!                 data);

@@ -1,4 +1,4 @@
-//! Asymmetrically encrypt or sign data for multiple recipients using the saltpack format.
+//! Asymmetrically encrypt data for multiple recipients using the saltpack format.
 //!
 //! Take a look at the [`Saltpack`][Saltpack] struct.
 //!
@@ -10,7 +10,7 @@
 //!
 //! ```
 //! # use rsaltpack::key::EncryptionKeyPair;
-//! # use rsaltpack::compose::{Saltpack, ArmoredSaltpack};
+//! # use rsaltpack::encrypt::{Saltpack, ArmoredSaltpack};
 //! let mut saltpack = Saltpack::encrypt(None, & vec![EncryptionKeyPair::gen().p]);
 //! use std::io::Write;
 //! saltpack.write_all(b"I love you").unwrap();
@@ -29,7 +29,7 @@
 //!
 //! ```
 //! use rsaltpack::key::EncryptionKeyPair;
-//! use rsaltpack::compose::Saltpack;
+//! use rsaltpack::encrypt::Saltpack;
 //! let recipients = vec![EncryptionKeyPair::gen().p];
 //!
 //! let data = b" The moment when, after many years
@@ -82,7 +82,7 @@
 //!
 //! ```
 //! # use rsaltpack::key::EncryptionKeyPair;
-//! # use rsaltpack::compose::Saltpack;
+//! # use rsaltpack::encrypt::Saltpack;
 //! # let recipients = vec![EncryptionKeyPair::gen().p];
 //! # let data = [12u8; 1000000];
 //! # // using None as first parameter for anonymous sender
@@ -285,11 +285,10 @@ impl Saltpack {
                         + header.4.len()
                         + header.5.len() * (size_of::<RecipSerializable>() + 2)
                         + bufsize_for_recipients
-                        + 10; // backup;
+                        + 3 * 32 + 10; // backup;
         let mut header_inner_messagepack = Vec::<u8>::with_capacity(bufsize);
 
         header.serialize(&mut Serializer::new(&mut header_inner_messagepack)).unwrap();
-        //header.encode(&mut Encoder::new(&mut header_inner_messagepack)).unwrap();
 
         // 7 Take the crypto_hash (SHA512) of the bytes from #6. This is the header hash.
         let headerhash = hash(&header_inner_messagepack[..]);
@@ -299,7 +298,6 @@ impl Saltpack {
 
         let mut header_outer_messagepack = Vec::with_capacity(header_inner_messagepack.len() + 10);
         ByteBuf::from(header_inner_messagepack).serialize(&mut Serializer::new(&mut header_outer_messagepack)).unwrap();
-        //header_outer.encode(&mut Encoder::new(&mut header_outer_messagepack)).unwrap();
         self.output_buffer.push_back(header_outer_messagepack);
 
         // After generating the header, the sender computes the MAC keys, which will be used below to authenticate the payload:

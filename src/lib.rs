@@ -15,7 +15,7 @@ extern crate rmp_serialize;
 extern crate rustc_serialize;
 extern crate test;
 
-pub mod compose;
+pub mod encrypt;
 pub mod parse;
 pub mod armor;
 pub mod dearmor;
