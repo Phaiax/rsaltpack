@@ -17,11 +17,12 @@
 //! Use the funciton [armor()](fn.armor.html) to armor a the binary data
 //! at once. Header and footer will be written immediatly.
 
-use ramp::Int;
+//use ramp::Int;
 use std::io::Write;
 use util::Consumable;
 use std::fmt;
 use std::cmp;
+use base62::b32bytes_to_base62_formatted;
 
 pub use ::SaltpackMessageType;
 
@@ -116,7 +117,7 @@ pub const SPACE_EVERY: usize = 15;
 pub const NEWLINE_EVERY: usize = 200;
 /// Storage needed to store the armored 43 characters with inserted spaces.
 /// (there can be 2 or 3 spaces within one block)
-const BUF_SIZE : usize = CHARS_PER_BLOCK + CHARS_PER_BLOCK / SPACE_EVERY + 1;
+pub const BUF_SIZE : usize = CHARS_PER_BLOCK + CHARS_PER_BLOCK / SPACE_EVERY + 1;
 
 
 impl ArmoringStream {
@@ -255,8 +256,7 @@ impl ArmoringStream {
                                 *buflen = b32bytes_to_base62_formatted(&buffer[..*filled_until],
                                                              &mut out_buffer[..],
                                                              &mut *space_in,
-                                                             &mut *newline_in,
-                                                             false);
+                                                             &mut *newline_in);
                                 *bufpos = 0;
                                 clear_in_buffer = true;
                             } else { // !last_bytes
@@ -268,8 +268,7 @@ impl ArmoringStream {
                         *buflen = b32bytes_to_base62_formatted(&buffer[0..BYTES_PER_BLOCK],
                                                          &mut out_buffer[..],
                                                          &mut *space_in,
-                                                         &mut *newline_in,
-                                                         true);
+                                                         &mut *newline_in);
                         *bufpos = 0;
                         clear_in_buffer = true; // in_buffer still borrowed here
                     }
@@ -289,8 +288,7 @@ impl ArmoringStream {
                         let written = b32bytes_to_base62_formatted(&binary_in[0..BYTES_PER_BLOCK],
                                                          &mut *armored_out,
                                                          &mut *space_in,
-                                                         &mut *newline_in,
-                                                         true);
+                                                         &mut *newline_in);
                         armored_out.consume(written);
                         binary_in.consume(BYTES_PER_BLOCK);
                         continue; // bufpos is still buflen
@@ -301,8 +299,7 @@ impl ArmoringStream {
                         *buflen = b32bytes_to_base62_formatted(&binary_in[0..BYTES_PER_BLOCK],
                                                          &mut out_buffer[..],
                                                          &mut *space_in,
-                                                         &mut *newline_in,
-                                                         true);
+                                                         &mut *newline_in);
                         binary_in.consume(BYTES_PER_BLOCK);
                         *bufpos = 0;
                         continue; // Then write partly to armored_out
@@ -327,8 +324,7 @@ impl ArmoringStream {
                         *buflen = b32bytes_to_base62_formatted(&binary_in[..],
                                                          &mut out_buffer[..],
                                                          &mut *space_in,
-                                                         &mut *newline_in,
-                                                         false);
+                                                         &mut *newline_in);
                         binary_in.consume(binary_in.len()); // finish
                         *bufpos = 0;
                     } else if binary_in.len() == 0 && last_bytes {
@@ -424,68 +420,8 @@ impl ArmoringStreamState {
     }
 }
 
-/// This function converts a zero based digit in base 62 to its ascii equivalent.
-#[inline]
-pub fn alphabet(i : u8) -> u8 {
-    if i <= 9 {
-        i + b'0'
-    } else if i <= 35 {
-        i + b'A' - 10
-    } else {
-        i + b'a' - 36
-    }
-}
 
-/// This function armors one 32 byte block into 43 base62 characters.
-///
-/// It inserts spaces and newlines, as soon as the counters `space_in` and
-/// `newline_in` reach zero. It is intended that consecutive calls always
-/// get references to the same counters, so the inserted spaces are all
-/// equidistant.
-///
-/// If `full_32` is true, it will always output 43 characters right aligned,
-/// even if the 32 byte input can be represented with 42 characters.
-///
-/// Returns the number of bytes, that have been written into base62out.
-///
-/// Base62out must have place for `BUF_SIZE` characters, otherwise it will panic.
-pub fn b32bytes_to_base62_formatted(raw_in : &[u8],
-                               base62out : &mut [u8],
-                               space_in : &mut usize,
-                               newline_in : &mut usize,
-                               full_32 : bool) -> usize {
-    assert!(raw_in.len() <= 32);
-    assert!(base62out.len() >= BUF_SIZE);
-    assert!(*space_in > 0);
-    assert!(*newline_in > 0);
-    let i = Int::from_big_endian_slice(raw_in);
-    let mut written = 0;
-    let min_len = if full_32 { 43 } else { 0 };
-    i.write_radix_callback_minlen(62, min_len, |b| {
-        unsafe {
-            //base62out.write(alphabet(b)).unwrap();
-            *base62out.get_unchecked_mut(written) = alphabet(b);
-            written += 1;
-            *space_in -= 1;
-            if *space_in == 0 {
-                *space_in = SPACE_EVERY;
-                *newline_in -= 1;
-                if *newline_in == 0 {
-                    *newline_in = NEWLINE_EVERY;
-                    //base62out.write(alphabet(b'\n')).unwrap();
-                    *base62out.get_unchecked_mut(written) = b'\n';
-                    written += 1;
-                } else {
-                    //base62out.write(alphabet(b' ')).unwrap();
-                    *base62out.get_unchecked_mut(written) = b' ';
-                    written += 1;
-                }
-            }
-        }
-    });
-    assert!(BUF_SIZE >= written);
-    written
-}
+
 
 
 #[cfg(test)]
@@ -493,38 +429,6 @@ mod tests {
     use super::*;
     use util::Consumable;
 
-    static ALPHABET : &'static str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
-
-    #[test]
-    fn alphabet_() {
-        for (i, c) in (ALPHABET).as_bytes().iter().enumerate() {
-            assert_eq!(alphabet(i as u8), *c);
-        }
-    }
-
-    #[test]
-    fn to_base62_with_spaces() {
-        let mut space_in = 3;
-        let mut newline_in = 3;
-        let data : [u8 ; 32] = [ 1, 2, 3, 4, 5, 6, 7, 8,
-                                 1, 2, 3, 4, 5, 6, 7, 8,
-                                 1, 2, 3, 4, 5, 6, 7, 8,
-                                 1, 2, 3, 4, 5, 6, 7, 8, ];
-        let mut out = vec![b'A' ; 150];
-        {
-            let mut out_slice = &mut out[..];
-            let written = b32bytes_to_base62_formatted(&data, &mut out_slice, &mut space_in, &mut newline_in, true);
-            let mut out_slice = &mut out_slice[written..];
-            let written = b32bytes_to_base62_formatted(&data, &mut out_slice, &mut space_in, &mut newline_in, true);
-            let mut out_slice = &mut out_slice[written..];
-            b32bytes_to_base62_formatted(&data, &mut out_slice, &mut space_in, &mut newline_in, true);
-        }
-        unsafe {
-            let s = String::from_utf8_unchecked(out);
-            assert!(s == "0Eo h211G4c8rWQ68g6 VHwCdRQSckQE9h6\nk6REalLOem0Eoh2 11G4c8rWQ68g6VH wCdRQSckQE9h6k6 REalLOem0Eoh211 G4c8rWQ68g6VHwC dRQSckQE9h6k6RE alLOemAAAAAAAAAAAA");
-        }
-    }
 
     #[test]
     fn armoring_stream() {
@@ -573,6 +477,7 @@ mod tests {
             // now deliver data until 32 bytes are complete
             let (read, written) = armoring_stream.armor(&data[25..32], false, &mut out_buf).unwrap();
             assert_eq!(read, 7);
+            println!("{:?}", String::from_utf8_lossy(&out_buf[0..written]));
             assert_eq!(written, 45);
             out_buf.consume(written);
 
@@ -587,10 +492,11 @@ mod tests {
             assert_eq!(written, 46);
             out_buf.consume(written);
 
-            // now add 0 new bytes but use the 25 bytes from the in_buffer for the last not full block
+            // now add 0 new bytes but use the 24 bytes from the in_buffer for the last not full block
             let (read, written) = armoring_stream.armor(&data[0..0], true, &mut out_buf).unwrap();
+            println!("{:?}", String::from_utf8_lossy(out_buf));
             assert_eq!(read, 0);
-            assert_eq!(written, 71);
+            assert_eq!(written, 73);
             out_buf.consume(written);
         }
 

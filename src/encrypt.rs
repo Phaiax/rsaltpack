@@ -112,7 +112,7 @@ use sodiumoxide::crypto::hash::hash;
 use sodiumoxide::crypto::auth;
 
 use serde::Serialize;
-use serde::bytes::ByteBuf;
+use serde_bytes::ByteBuf;
 use rmp_serde::Serializer;
 
 use ::armor;
@@ -602,7 +602,7 @@ mod tests {
 
     use super::*;
     use super::super::key::*;
-    use test::{self, Bencher};
+    //use test::{self, Bencher};
 
     #[test]
     fn make_saltpack() {
@@ -652,7 +652,7 @@ mod tests {
         println!("{}", armored.to_string()); // read all
     }
 
-    #[bench]
+    /*#[bench]
     fn bench_encrypt_2mb_100recip(b: &mut Bencher) {
         let sender = EncryptionKeyPair::gen();
         let mut recipients = Vec::<EncryptionPublicKey>::new();
@@ -665,5 +665,5 @@ mod tests {
             let encr = encrypt_to_binary(Some(&sender), &recipients, &payload);
             test::black_box(encr);
         });
-    }
+    }*/
 }

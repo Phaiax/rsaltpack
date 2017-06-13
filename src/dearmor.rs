@@ -26,16 +26,15 @@
 
 
 use regex::bytes::Regex;
-use ramp::Int;
+// use ramp::Int;
 use std::cmp::min;
 use std::vec::Vec;
-use std::convert::TryInto;
 use std::io::Write;
 use std::ops::Range;
 use ::SaltpackMessageType;
 use util::Consumable;
-use ::armor::CHARS_PER_BLOCK;
-use ::armor::BYTES_PER_BLOCK;
+use util::TryInto;
+use base62::decode_base62;
 
 /// Removes all chars that can not occur within saltpacks.
 /// (keeps [A-Za-z0-9.])
@@ -221,13 +220,13 @@ fn find_first_saltpack<'a>(input : &'a mut [u8]) -> Option<(&'a mut [u8], ArmorI
         // Range of BEGINxSALTPACKx.
         let header_match = cap.unwrap();
         let header_pos = Range {
-            start: header_match.pos(0).unwrap().0,
-            end : header_match.pos(0).unwrap().1,
+            start: header_match.get(0).unwrap().start(),
+            end : header_match.get(0).unwrap().end(),
         };
 
         // extract vendor and type
-        let vendor = header_match.at(1).unwrap_or(&[]);
-        let typ = header_match.at(2).unwrap_or(&[]);
+        let vendor = header_match.get(1).map(|m| m.as_bytes()).unwrap_or(&[]);
+        let typ = header_match.get(2).map(|m| m.as_bytes()).unwrap_or(&[]);
 
         (
             ArmorInfo {
@@ -270,51 +269,7 @@ fn make_condensed_footer(vendor : &[u8], typ : SaltpackMessageType) -> Vec<u8> {
     footer
 }
 
-/// Decodes stripped (only ascii, no whitespace) base62 coded data into its raw representation
-/// Reuses the ascii_input as buffer, that means the data is unusable afterwards.
-pub fn decode_base62<'a>(ascii_input : &mut [u8]) -> Result<Vec<u8>, String> {
-    // base62 efficiency is 75%, so we can assume maximum raw data length.
-    // (+rounding +last non full block needs still place of a full block (max 32))
-    let mut raw_output = vec![0u8; ascii_input.len() * 3 / 4 + 1 + 32];
-    let mut raw_output_pointer = 0;
-    {
-        for (input_chunk, output_chunk) in ascii_input.chunks_mut(CHARS_PER_BLOCK)
-                                       .zip(raw_output.chunks_mut(BYTES_PER_BLOCK)) {
-            // dealphabet in place
-            for c in input_chunk.iter_mut() { *c = dealphabet(*c); }
-            raw_output_pointer += decode_base62_block(input_chunk, output_chunk);
 
-        }
-
-    }
-    raw_output.resize(raw_output_pointer, 0);
-    return Ok(raw_output);
-}
-
-
-#[inline]
-fn dealphabet(i : u8) -> u8 {
-    if i <= b'9' {
-        i - b'0'
-    } else if i <= b'Z' {
-        i - b'A' + 10
-    } else {
-        i - b'a' + 36
-    }
-}
-
-#[inline]
-/// Decodes a block of max [`CHARS_PER_BLOCK`] ascii chars to
-/// raw data (max [`BYTES_PER_BLOCK`] bytes).
-/// Returns the number of bytes written.
-/// [`CHARS_PER_BLOCK`]: ../armor/constant.CHARS_PER_BLOCK.html
-/// [`BYTES_PER_BLOCK`]: ../armor/constant.BYTES_PER_BLOCK.html
-pub fn decode_base62_block(base62 : &[u8], rawout : &mut[u8]) -> usize {
-    let i = unsafe {
-        Int::from_u8_be_radix_unchecked(base62, 62).unwrap()
-    };
-    i.write_big_endian_buffer(rawout).unwrap()
-}
 
 
 #[cfg(test)]
@@ -330,7 +285,6 @@ mod tests {
     Wt eMlv17NOUUr9Gp3 fClo7khRnJ12T7j 6ZVkfDXUpznTp57 0btBywDV848jyp2 EceloYGiuOolWim 8HCx77p22iulWja ixShPFcOi1mkG2i 4Iur3QfGYeKpflx a1GXmvQLi1G99mH 625dH5HGcQ63pOb K1i7g3lXIQ9Kcfy NRDfdBIDMHJaJf1 uTKB4GJ9l4M7glS 07h9QsU4gPueyNC hzm6LmA9CFllzxy 8ZA0Ys5qDnSuwaN obowMNXpbm1nlsx fXFtMolx6ghLuEw 2s8f1jBxBQjQPwa GG90h5BbpoWGPk6 dRsou5kdNxcLaFJ KKXWTUR2h9P0P7p 9UYRsQ6QqGNiwmG wXC7YFh1xCUdAib gjZbUYUKN6KVLem hZI6XYtX2l1w8d5 jL8KJ5ZZpKhJ4JC faVWCU2VRtUFgQO ejKm6wjs6NcekTd KK4bOh5kr87cyRu 0aDjEtfMSyZZTG5 hIrEWcMq1Iotzrx iRdmY5GYf2Kx0Br 4K0rqrj8ZGa. END SALTPACK SIGNED MESSAGE.!!";
 
 
-    pub static ALPHABET : &'static str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 }
 
 #[test]
@@ -343,13 +297,6 @@ fn find_header() {
     assert_eq!(*inners, tests::STRIPPED_1[27..638]);
     let rawdata = decode_base62(&mut inners[..]).unwrap();
     assert_eq!(rawdata.len(), 454);
-}
-
-#[test]
-fn alphabet_() {
-    for (i, c) in (tests::ALPHABET).as_bytes().iter().enumerate() {
-        assert_eq!(dealphabet(*c) as usize, i);
-    }
 }
 
 #[test]

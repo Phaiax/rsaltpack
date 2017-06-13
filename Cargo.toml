@@ -3,15 +3,22 @@ name = "rsaltpack"
 version = "0.1.0"
 authors = ["Phaiax <phaiax-rsaltpack@invisibletower.de>"]
 
+[features]
+
+default = ['num-bigint']
+fast_math = ['ramp']
+
 [dependencies]
-serde = "^0.7"
-serde_macros = "^0.7"
+serde = "1.0"
+serde_derive = "1.0"
+serde_bytes = "0.10"
 rmp = "*"
 rmp-serde = "*"
-rmp-serialize = "*"
-rustc-serialize = "*"
-ramp = { path = "crates/ramp" }
+rmpv = "*"
+ramp = { path = "crates/ramp", optional = true }
+num-bigint = { path="crates/num/bigint", version = "0.1", optional = true }
+num-traits = { version = "0.1" }
 byteorder = "^0.5"
 regex="*"
-regex_macros = "^0.1"
+#regex_macros = "^0.1"
 sodiumoxide = "0.0.10"

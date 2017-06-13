@@ -1,19 +1,25 @@
 
-#![feature(custom_derive, plugin, alloc, test, try_from)]
-#![plugin(serde_macros)]
-#![plugin(regex_macros)]
+
+#[macro_use] extern crate serde_derive;
 
 extern crate serde;
+extern crate serde_bytes;
+extern crate rmp; // message pack
+extern crate rmp_serde;
+extern crate rmpv;
+
+#[cfg(feature = "fast_math")]
 extern crate ramp;
 extern crate byteorder;
-extern crate alloc;
+//extern crate alloc;
 extern crate regex;
-extern crate rmp;
 extern crate sodiumoxide;
-extern crate rmp_serde;
-extern crate rmp_serialize;
-extern crate rustc_serialize;
-extern crate test;
+//extern crate test;
+
+#[cfg(feature = "num-bigint")]
+extern crate num_bigint;
+#[cfg(feature = "num-bigint")]
+extern crate num_traits;
 
 pub mod encrypt;
 pub mod parse;
@@ -22,15 +28,22 @@ pub mod dearmor;
 pub mod util;
 pub mod key;
 
+#[cfg(feature = "num-bigint")]
+#[path="base62_num.rs"]
+pub mod base62;
+
+#[cfg(feature = "fast_math")]
+#[path="base62_ramp.rs"]
+pub mod base62;
+
 pub use sodiumoxide::crypto::box_::Nonce as CBNonce;
 
 pub use sodiumoxide::crypto::secretbox::Nonce as SBNonce;
 
 use std::string::ToString;
-use std::convert::TryFrom;
+// use std::convert::TryFrom;
 
-
-
+use util::TryFrom;
 
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -73,9 +86,10 @@ impl ToString for SaltpackMessageType {
 }
 
 
+
 impl<'a> TryFrom<&'a str> for SaltpackMessageType {
-    type Err = String;
-    fn try_from(ascii : &str) -> Result<Self, Self::Err> {
+    type Error = String;
+    fn try_from(ascii : &str) -> Result<Self, Self::Error> {
         match ascii {
             "ENCRYPTEDMESSAGE" => Ok(SaltpackMessageType::ENCRYPTEDMESSAGE),
             "SIGNEDMESSAGE" => Ok(SaltpackMessageType::SIGNEDMESSAGE),
@@ -89,8 +103,8 @@ impl<'a> TryFrom<&'a str> for SaltpackMessageType {
 }
 
 impl<'a> TryFrom<&'a [u8]> for SaltpackMessageType {
-    type Err = String;
-    fn try_from(ascii : &[u8]) -> Result<Self, Self::Err> {
+    type Error = String;
+    fn try_from(ascii : &[u8]) -> Result<Self, Self::Error> {
         match ascii {
             b"ENCRYPTEDMESSAGE" => Ok(SaltpackMessageType::ENCRYPTEDMESSAGE),
             b"SIGNEDMESSAGE" => Ok(SaltpackMessageType::SIGNEDMESSAGE),

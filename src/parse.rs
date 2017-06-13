@@ -42,8 +42,9 @@ use ::util;
 
 use std::io::Read;
 use std::io::Write;
-use rmp::decode;
-use rmp::value::{Value, Integer};
+use std::io::ErrorKind;
+use rmpv::decode;
+use rmpv::Value;
 use std::char::from_u32;
 
 use sodiumoxide::crypto::hash::sha512::{hash, Digest};
@@ -199,7 +200,8 @@ fn check_header_format_and_version(arr: &Vec<Value>,
 
     // 4.1 check first array element to be the string "saltpack"
     let saltpack_str = match arr.get(0).unwrap().clone() {
-        Value::String(e) => e,
+        Value::String(e) => if e.is_str() { e.into_str().unwrap() }
+            else { return Err(ParseError::NotWellFormed("First header array element is not of type string.".to_string())) },
         _ => return Err(ParseError::NotWellFormed("First header array element is not of type string.".to_string()))
     };
 
@@ -218,12 +220,12 @@ fn check_header_format_and_version(arr: &Vec<Value>,
     }
 
     let version_major = match version_arr.get(0).unwrap().clone() {
-        Value::Integer(Integer::U64(i)) => i,
+        Value::Integer(i) if i.is_u64() => i.as_u64().unwrap(),
         _ =>  return Err(ParseError::NotWellFormed(format!("Header version field[0] is not of type integer"))),
     };
 
     let version_minor = match version_arr.get(1).unwrap().clone() {
-        Value::Integer(Integer::U64(i)) => i,
+        Value::Integer(i) if i.is_u64() => i.as_u64().unwrap(),
         _ =>  return Err(ParseError::NotWellFormed(format!("Header version field[1] is not of type integer"))),
     };
 
@@ -252,10 +254,13 @@ fn check_header_len(arr: &Vec<Value>, min_len: usize) -> Result<(), ParseError> 
 
 fn check_mode(arr: &Vec<Value>) -> Result<SaltpackMessageType, ParseError> {
     match arr.get(2).unwrap().clone() {
-        Value::Integer(Integer::U64(i)) if i == 0 => Ok(SaltpackMessageType::ENCRYPTEDMESSAGE),
-        Value::Integer(Integer::U64(i)) if i == 1 => Ok(SaltpackMessageType::SIGNEDMESSAGE),
-        Value::Integer(Integer::U64(i)) if i == 2 => Ok(SaltpackMessageType::DETACHEDSIGNATURE),
-        Value::Integer(Integer::U64(i)) => Err(ParseError::UnknownMode(format!("Unknown saltpack mode. {}", i), i)),
+        Value::Integer(i) if i.is_u64() && i.as_u64().unwrap() == 0
+            => Ok(SaltpackMessageType::ENCRYPTEDMESSAGE),
+        Value::Integer(i) if i.is_u64() && i.as_u64().unwrap() == 1
+            => Ok(SaltpackMessageType::SIGNEDMESSAGE),
+        Value::Integer(i) if i.is_u64() && i.as_u64().unwrap() == 2
+            => Ok(SaltpackMessageType::DETACHEDSIGNATURE),
+        Value::Integer(i) if i.is_u64() => Err(ParseError::UnknownMode(format!("Unknown saltpack mode. {}", i.as_u64().unwrap()), i.as_u64().unwrap())),
         _ => Err(ParseError::NotWellFormed(format!("Header mode field[2] is not of type integer")))
     }
 }
@@ -614,7 +619,7 @@ impl SaltpackDecrypter10 {
       where R: Read {
         match decode::read_value(&mut raw) {
             Ok(Value::Array(arr)) => Ok(arr),
-            Err(decode::value::Error::InvalidMarkerRead(decode::ReadError::UnexpectedEOF))
+            Err(decode::Error::InvalidMarkerRead(ref inner)) if inner.kind() == ErrorKind::UnexpectedEof
                 => Err(DecryptionError::EOFOccured),
             Err(s) => Err(DecryptionError::NotWellFormed(format!("Not a messagepack stream. {}", s))),
             _ => Err(DecryptionError::NotWellFormed("Payload packet is no messagepack array.".to_string()))
@@ -699,19 +704,20 @@ mod tests {
     use super::*;
     use dearmor::dearmor;
     use dearmor::Stripped;
-    use ::SaltpackMessageType;
+    // use ::SaltpackMessageType;
 
     #[test]
+    #[allow(unused_variables)]
     fn test_v10() {
         let raw_saltpacks = dearmor(Stripped::from_utf8(&ARMORED_2), 1).unwrap();
         let pack1 = raw_saltpacks.get(0).unwrap();
         let mut reader : &[u8] = pack1.raw_bytes.as_slice();
         let header = SaltpackHeader10::read_header(&mut reader).unwrap();
-        //assert_eq!(header.mode, SaltpackMessageType::ENCRYPTEDMESSAGE);
-        //assert_eq!(header.recipients.len(), 3);
-        //if let SaltpackHeader10::Encryption(enc_header) = header {
-            //enc_header.verify()
-        //}
+        // assert_eq!(header.mode, SaltpackMessageType::ENCRYPTEDMESSAGE);
+        // assert_eq!(header.recipients.len(), 3);
+        // if let SaltpackHeader10::Encryption(enc_header) = header {
+        //     enc_header.verify()
+        // }
 
     }
 
