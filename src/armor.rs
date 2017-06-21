@@ -17,14 +17,15 @@
 //! Use the funciton [armor()](fn.armor.html) to armor a the binary data
 //! at once. Header and footer will be written immediatly.
 
-//use ramp::Int;
 use std::io::Write;
-use util::Consumable;
 use std::fmt;
 use std::cmp;
+
+use util::Consumable;
 use base62::b32bytes_to_base62_formatted;
 
 pub use ::SaltpackMessageType;
+use errors::*;
 
 /// This function does the same as [ArmoringStream](struct.ArmoringStream.html),
 /// but in one rush.
@@ -36,7 +37,7 @@ pub use ::SaltpackMessageType;
 pub fn armor(binary_in : &mut [u8],
              vendorstring: &str,
              messagetype: SaltpackMessageType)
-             -> Result<String, String> {
+             -> Result<String> {
     let mut armoring_stream = try!(ArmoringStream::new(vendorstring, messagetype));
     let mut out = vec![0u8; armoring_stream.predict_armored_len(binary_in.len())];
     let (_, written) = armoring_stream.armor(&binary_in[..], true, &mut out[..]).unwrap();
@@ -47,13 +48,13 @@ pub fn armor(binary_in : &mut [u8],
 
 /// Check if a vendor string is valid. The vendor string must only contain
 /// these characters: Regex: [a-zA-Z0-9]*
-pub fn valid_vendor(vendor : &str) -> Result<(), String> {
+pub fn valid_vendor(vendor : &str) -> Result<()> {
     fn in_(c : char, first : char, last : char) -> bool {
         first <= c && c <= last
     }
     for c in vendor.chars() {
         if ! (in_(c, 'a', 'z') || in_(c, 'A', 'Z') || in_(c, '0', '9')) {
-            return Err(format!("Invalid char {} in vendor string {}.", c, vendor));
+            bail!(ErrorKind::BadVendorString(c, vendor.into()));
         }
     }
     Ok(())
@@ -125,7 +126,7 @@ impl ArmoringStream {
     /// Create a new streaming interface
     pub fn new(vendorstring: &str,
                messagetype: SaltpackMessageType)
-               -> Result<ArmoringStream, String> {
+               -> Result<ArmoringStream> {
         try!(valid_vendor(vendorstring));
         Ok(ArmoringStream{
             state : ArmoringStreamState::AtHeader{
@@ -156,7 +157,7 @@ impl ArmoringStream {
                  mut binary_in : &[u8],
                  last_bytes : bool,
                  mut armored_out : &mut[u8])
-                 -> Result<(usize, usize), String> {
+                 -> Result<(usize, usize)> {
 
         let binary_in_len = binary_in.len();
         let armored_out_len = armored_out.len();

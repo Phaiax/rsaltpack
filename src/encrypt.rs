@@ -117,6 +117,7 @@ use rmp_serde::Serializer;
 
 use ::armor;
 use ::util;
+use errors::*;
 
 use std::mem::size_of;
 use std::io::{Read, Write};
@@ -169,7 +170,7 @@ pub fn encrypt_to_binary(sender : Option<&EncryptionKeyPair>,
 pub fn encrypt_and_armor(sender : Option<&EncryptionKeyPair>,
                       recipients : &Vec<EncryptionPublicKey>,
                       payload : &[u8],
-                      vendor : &str) -> Result<String, String> {
+                      vendor : &str) -> Result<String> {
     let mut saltpack = Saltpack::encrypt(sender, recipients);
     saltpack.write_all(payload).unwrap();
     saltpack.flush().unwrap();
@@ -238,7 +239,7 @@ impl Saltpack {
     /// ```
     ///
     /// Returns Err if vendor contains chars other than `[a-zA-Z0-9]`.
-    pub fn armor(self, vendor : &str) -> Result<ArmoredSaltpack, String> {
+    pub fn armor(self, vendor : &str) -> Result<ArmoredSaltpack> {
         ArmoredSaltpack::new(self, vendor)
     }
 
@@ -534,7 +535,7 @@ impl Read for ArmoredSaltpack {
                     let front = self.saltpack.output_buffer.front().unwrap();
                     match self.armoring_stream.armor(&front[br..], self.saltpack.last_bytes(), &mut buffer) {
                         Ok(a) => a,
-                        Err(msg) => { return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, msg)); }
+                        Err(msg) => { return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, msg.description())); }
                     }
                 };
                 bytes_read += written_into_buffer;
@@ -555,7 +556,7 @@ impl Read for ArmoredSaltpack {
                 let (_, written_into_buffer) = {
                     match self.armoring_stream.armor(&[], true, &mut buffer) {
                         Ok(a) => a,
-                        Err(msg) => { return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, msg)); }
+                        Err(msg) => { return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, msg.description())); }
                     }
                 };
                 buffer.consume(written_into_buffer);
@@ -569,7 +570,7 @@ impl Read for ArmoredSaltpack {
 
 impl ArmoredSaltpack {
 
-    pub fn new(saltpack : Saltpack, vendor : &str) -> Result<ArmoredSaltpack, String> {
+    pub fn new(saltpack : Saltpack, vendor : &str) -> Result<ArmoredSaltpack> {
         Ok(ArmoredSaltpack {
             saltpack : saltpack,
             armoring_stream : try!(armor::ArmoringStream::new(vendor, SaltpackMessageType::ENCRYPTEDMESSAGE)),

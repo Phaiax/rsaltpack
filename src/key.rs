@@ -7,32 +7,51 @@
 //!  * The encryption key is a _DH over Curve25519_ key
 //!
 //! ## Usage
-//! ```
-//!    use rsaltpack::key::{EncryptionPublicKey, KeybaseFormat};
-//!    // Encryption keys start with 0121
-//!    let chris_ccpro_encr_key = "0121b6f70a8b79a28742a0a85e493f825e79a15cddce080e59d671ccb1da9b50a07a0a";
-//!    let key = EncryptionPublicKey::from_keybaseformat(&chris_ccpro_encr_key).unwrap();
-//!    println!("Chris public key for asymmetric authenticated encryption: {}", key.into_keybaseformat());
 //!
-//!    use rsaltpack::key::{SigningPublicKey};
-//!    // Encryption keys start with 0120
-//!    let chris_ccpro_signing_key = "01203a5a45c545ef4f661b8b7573711aaecee3fd5717053484a3a3e725cd68abaa5a0a";
-//!    assert!(SigningPublicKey::from_keybaseformat(&chris_ccpro_signing_key).is_ok());
+//! ```
+//! use rsaltpack::key::{EncryptionPublicKey, SigningPublicKey,
+//!                      KeybaseKeyFormat, KeybaseKeyFormatVersion};
+//!
+//! // Encryption keys start with 0121
+//! let chris_encr_key = "0121b6f70a8b79a28742a0a85e493f825e7\
+//!                       9a15cddce080e59d671ccb1da9b50a07a0a";
+//! let key = EncryptionPublicKey::from_keybaseformat(&chris_encr_key).unwrap();
+//! println!("Chris public key for asymmetric authenticated encryption: {}",
+//!          key.into_keybaseformat(KeybaseKeyFormatVersion::Version1));
+//!
+//! // Signing keys start with 0120
+//! let chris_signing_key = "01203a5a45c545ef4f661b8b7573711aaec\
+//!                          ee3fd5717053484a3a3e725cd68abaa5a0a";
+//! assert!(SigningPublicKey::from_keybaseformat(&chris_signing_key).is_ok());
 //! ```
 //!
-//! ## Notes regarding keybase
+//!
+//! ## Notes Regarding Keybase
+//!
 //! During key generation in keybase, the signing key signs the encryption key, see
 //!
-//! * client/go/engine/kex2_provisionee.go : cacheKeys(), HandleDidCounterSign())
+//! * client/go/engine/kex2_provisionee.go : cacheKeys(), HandleDidCounterSign()
 //! * also see client/go/libkb/naclwrap.go : makeNaclSigningKeyPair(), makeNaclDHKeyPair()
 //!   - makeNaclDHKeyPair() uses NaCls box.GenerateKey()
 //!   - makeNaclSigningKeyPair() **uses ed25519.GenerateKey() but not NaCl!**
 //!
-//! Signing doesn't use [old NaCl signatures (crypto_sign_edwards25519sha512batch)](http://nacl.cr.yp.to/sign.html) but
-//! the [Ed25519](https://ed25519.cr.yp.to/). I guess the NaCl lib of keybase did not
-//! support Ed25519 at time of writing their code, so they used [github:agl/ed25519](https://github.com/agl/ed25519)
-//! instead of the NaCl primitives. But this has changed and [now](../../sodiumoxide/crypto/sign/index.html)
+//! Signing doesn't use [old NaCl signatures
+//! (crypto_sign_edwards25519sha512batch)](http://nacl.cr.yp.to/sign.html) but the
+//! [Ed25519](https://ed25519.cr.yp.to/).
+//! I guess the NaCl lib of keybase did not
+//! support Ed25519 at time of writing their code, so they used
+//! [github:agl/ed25519](https://github.com/agl/ed25519)
+//! instead of the NaCl primitives. But this has changed and
+//! [now](../../sodiumoxide/crypto/sign/index.html)
 //! we can simply use NaCl aka sodiumoxide.
+//!
+//!
+//! # Security Note
+//!
+//! The library in the background, sodiumoxide, has implemented
+//! Drop for SecretKey. During `drop()`, the secret key data is wiped
+//! from memory.
+//!
 
 pub use sodiumoxide::crypto::box_::PublicKey as EncryptionPublicKey;
 pub use sodiumoxide::crypto::box_::SecretKey as EncryptionSecretKey;
@@ -41,103 +60,200 @@ pub use sodiumoxide::crypto::sign::PublicKey as SigningPublicKey;
 pub use sodiumoxide::crypto::sign::SecretKey as SigningSecretKey;
 
 pub use sodiumoxide::crypto::secretbox::Key; // symmmetric encryption
+
 use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::sign;
-use ::util::{bytes_to_hex, hex_to_bytes};
 
-/// Combination of public and secret key for asymmetric authenticated encryption
-pub struct EncryptionKeyPair{ pub p : EncryptionPublicKey, pub s : EncryptionSecretKey }
+use std::str::from_utf8;
+use errors::*;
+
+/// Composition of a public key and a secret key for
+/// asymmetric authenticated encryption.
+///
+/// A keypair typically belongs to one user.
+pub struct EncryptionKeyPair {
+    pub p : EncryptionPublicKey,
+    pub s : EncryptionSecretKey
+}
 
 impl EncryptionKeyPair {
+    /// Generates a new, random keypair.
     pub fn gen() -> EncryptionKeyPair {
         let (p, s) = box_::gen_keypair();
         EncryptionKeyPair { p : p, s : s }
     }
-    // sodiumoxide has implemented Drop for Secretkey -> wipe
 }
 
-/// Combination of public and secret key for signatures
-pub struct SigningKeyPair{ pub p : SigningPublicKey, pub s : SigningSecretKey }
+/// Composition of a public key and a secret key for signatures.
+///
+/// A keypair typically belongs to one user.
+///
+
+pub struct SigningKeyPair {
+    pub p : SigningPublicKey,
+    pub s : SigningSecretKey
+}
 
 impl SigningKeyPair {
+    /// Generates a new, random keypair.
     pub fn gen() -> SigningKeyPair {
         let (p, s) = sign::gen_keypair();
         SigningKeyPair { p : p, s : s }
     }
-    // sodiumoxide has implemented Drop for Secretkey -> wipe
 }
 
-/// Helper to convert between `Encryption..` or `SigningPublicKey`s and the [keybase format](https://keybase.io/docs/api/1.0/kid)
-pub trait KeybaseFormat {
-    fn from_keybaseformat(hex : &str) -> Result<Self, String>
-        where Self: Sized;
-    fn into_keybaseformat(&self) -> String;
-}
-
-/// Checks the common traits of keybase formated keys and returns the type part
-fn check_keybase_format(hex : &str) -> Result<&str, String> {
-    if hex.len() != 35*2 {
-        return Err("Wrong length. Keybase formated keys have a length of 70 chars.".into())
+/// Parses hex formatted data.
+///
+/// # Errors
+/// This function can return the ErrorKinds
+///
+///  - `Utf8Error`
+///  - `ParseIntError`
+pub fn hex_to_bytes(hex : &str) -> Result<Vec<u8>> {
+    let mut bin = Vec::with_capacity(hex.len() / 2 + 1);
+    for b in hex.as_bytes().chunks(2) {
+        let c = from_utf8(&b)?;
+        bin.push(u8::from_str_radix(&c, 16)?);
     }
-    if &hex[68..70] != "0a" {
-        return Err("Not a keybase public key. Keybase formated keys end with '0a'.".into())
+    Ok(bin)
+}
+
+/// Formats bytes as lowercase hexadecimal string.
+pub fn bytes_to_hex(bin : &[u8]) -> String {
+    use std::fmt::Write;
+    let mut out = String::with_capacity(bin.len() * 2);
+    for b in bin.iter() {
+        write!(out, "{:02x}", b).ok();
+    }
+    out
+}
+
+/// Checks the common traits of keybase formated keys and returns the type part.
+///
+/// # Errors
+/// This function can return the ErrorKinds
+///
+///  - `KeybaseKeyNotAPublicKey`
+///  - `KeybaseKeyUnsupportedVersion`
+///  - `KeybaseKeyWrongLength`
+fn check_keybase_format(hex : &str) -> Result<&str> {
+    let len = hex.len();
+    if &hex[len-2..len] != "0a" {
+        bail!(ErrorKind::KeybaseKeyNotAPublicKey);
     }
     if &hex[0..2] != "01" {
-        return Err("Unsupported version of a keybase key. Expected the key to start with '01'.".into())
+        bail!(ErrorKind::KeybaseKeyUnsupportedVersion(hex[0..2].to_owned()));
+    }
+    if hex.len() != 35*2 {
+        bail!(ErrorKind::KeybaseKeyWrongLength(hex.len()));
     }
     return Ok(&hex[2..4])
 }
 
-impl KeybaseFormat for EncryptionPublicKey {
-    fn from_keybaseformat(hex : &str) -> Result<Self, String> {
-        if try!(check_keybase_format(&hex)) != "21" {
-            return Err("Wrong key type. Expected an encryption key that starts with '0121'.".into())
-        }
-        let bytes = try!(hex_to_bytes(&hex[4..68]).map_err(|e| format!("Could not decode hex string. ({}).", e)));
-        Self::from_slice(bytes.as_slice()).ok_or("Some error that should not happen.".into())
+/// The possible versions for formating keybase KIDs.
+///
+/// Default is implemented and will always be the newest version.
+pub enum KeybaseKeyFormatVersion {
+    Version1
+}
+
+impl Default for KeybaseKeyFormatVersion {
+    fn default() -> Self {
+        KeybaseKeyFormatVersion::Version1
     }
-    fn into_keybaseformat(&self) -> String {
-        let mut s = String::with_capacity(70);
-        s.push_str("0121"); // version 01, type 21=DH_over_Curve25519=encryption
-        s.push_str(&bytes_to_hex(&self.0[..]));
-        s.push_str("0a");
-        s
+}
+
+/// Helper to convert `EncryptionPublicKey`s and `SigningPublicKey`s
+/// from and to the [keybase KID format](https://keybase.io/docs/api/1.0/kid).
+pub trait KeybaseKeyFormat : Sized {
+    /// Parses a key given in keybases human readable KID style.
+    ///
+    /// # Errors
+    /// This function can return the ErrorKinds
+    ///
+    ///  - `KeybaseKeyNotAPublicKey`
+    ///  - `KeybaseKeyUnsupportedVersion`
+    ///  - `KeybaseKeyWrongLength`
+    ///  - `KeybaseKeyNotAnEncryptionKey` or `KeybaseKeyNotASigningKey`
+    ///  - `CouldNotDecodeHex`
+    fn from_keybaseformat(keybase_formatted_key : &str) -> Result<Self>;
+    /// Formats the key data in keybases human readable KID style.
+    fn into_keybaseformat(&self, v : KeybaseKeyFormatVersion) -> String;
+}
+
+impl KeybaseKeyFormat for EncryptionPublicKey {
+    fn from_keybaseformat(keybase_formatted_key : &str) -> Result<Self> {
+        if check_keybase_format(&keybase_formatted_key)? != "21" {
+            bail!(ErrorKind::KeybaseKeyNotAnEncryptionKey);
+        }
+        let bytes = hex_to_bytes(&keybase_formatted_key[4..68])
+            .chain_err(|| ErrorKind::CouldNotDecodeHex)?;
+        Ok(Self::from_slice(bytes.as_slice()).unwrap())
+    }
+    fn into_keybaseformat(&self, v : KeybaseKeyFormatVersion) -> String {
+        match v {
+            KeybaseKeyFormatVersion::Version1 => {
+                let mut s = String::with_capacity(70);
+                s.push_str("0121"); // version 01, type 21=DH_over_Curve25519=encryption
+                s.push_str(&bytes_to_hex(&self.0[..]));
+                s.push_str("0a");
+                s
+            }
+        }
     }
 }
 
 
-impl KeybaseFormat for SigningPublicKey {
-    fn from_keybaseformat(hex : &str) -> Result<Self, String> {
-        if try!(check_keybase_format(&hex)) != "20" {
-            return Err("Wrong key type. Expected a signing key that starts with '0120'.".into())
+impl KeybaseKeyFormat for SigningPublicKey {
+    fn from_keybaseformat(hex : &str) -> Result<Self> {
+        if check_keybase_format(&hex)? != "20" {
+            bail!(ErrorKind::KeybaseKeyNotASigningKey);
         }
-        let bytes = try!(hex_to_bytes(&hex[4..68]).map_err(|e| format!("Could not decode hex string. ({}).", e)));
-        Self::from_slice(bytes.as_slice()).ok_or("Some error that should not happen.".into())
+        let bytes = hex_to_bytes(&hex[4..68])
+            .chain_err(|| ErrorKind::CouldNotDecodeHex)?;
+        Ok(Self::from_slice(bytes.as_slice()).unwrap())
     }
-    fn into_keybaseformat(&self) -> String {
-        let mut s = String::with_capacity(70);
-        s.push_str("0120"); // version 01, type 20=EdDSA=signing
-        s.push_str(&bytes_to_hex(&self.0[..]));
-        s.push_str("0a");
-        s
+    fn into_keybaseformat(&self, v : KeybaseKeyFormatVersion) -> String {
+        match v {
+            KeybaseKeyFormatVersion::Version1 => {
+                let mut s = String::with_capacity(70);
+                s.push_str("0120"); // version 01, type 20=EdDSA=signing
+                s.push_str(&bytes_to_hex(&self.0[..]));
+                s.push_str("0a");
+                s
+            }
+        }
     }
 }
 
-/// Helper to convert between `Encryption..` or `SigningPublicKey`s and simple unstructured hex representation
-pub trait RawHexEncoding {
-    fn from_rawhex(hex : &str) -> Result<Self, String>
-        where Self: Sized;
+/// Helper to convert `EncryptionPublicKey` and `SigningPublicKey`
+/// from and to a simple unstructured hex representation.
+pub trait RawHexEncoding : Sized {
+    /// Parses a hex string.
+    ///
+    /// # Errors
+    /// This function can return the ErrorKinds
+    ///
+    ///  - `RawHexEncodedKeyWrongLength`
+    ///  - `CouldNotDecodeHex`
+    fn from_rawhex(hex : &str) -> Result<Self>;
     fn into_rawhex(&self) -> String;
+    fn formatted_len() -> usize;
 }
 
 impl RawHexEncoding for EncryptionPublicKey {
-    fn from_rawhex(hex : &str) -> Result<Self, String> {
+    fn formatted_len() -> usize {
         use sodiumoxide::crypto::box_::PUBLICKEYBYTES;
-        if hex.len() != PUBLICKEYBYTES*2 {
-            return Err(format!("Wrong length. Expected {} characters.", PUBLICKEYBYTES*2));
+        PUBLICKEYBYTES*2
+    }
+    fn from_rawhex(hex : &str) -> Result<Self> {
+        if hex.len() != Self::formatted_len() {
+            bail!(ErrorKind::RawHexEncodedKeyWrongLength(
+                "public encryption".to_owned(), hex.len(), Self::formatted_len()));
         }
-        let bytes = try!(hex_to_bytes(&hex[..]).map_err(|e| format!("Could not decode hex string. ({}).", e)));
-        Self::from_slice(bytes.as_slice()).ok_or("Some error that should not happen.".into())
+        let bytes = hex_to_bytes(&hex[..])
+            .chain_err(|| ErrorKind::CouldNotDecodeHex)?;
+        Ok(Self::from_slice(bytes.as_slice()).unwrap())
     }
     fn into_rawhex(&self) -> String {
         bytes_to_hex(&self.0[..])
@@ -145,12 +261,17 @@ impl RawHexEncoding for EncryptionPublicKey {
 }
 
 impl RawHexEncoding for SigningPublicKey {
-    fn from_rawhex(hex : &str) -> Result<Self, String> {
-        use sodiumoxide::crypto::sign::PUBLICKEYBYTES;
-        if hex.len() != PUBLICKEYBYTES*2 {
-            return Err(format!("Wrong length. Expected {} characters.", PUBLICKEYBYTES*2));
+    fn formatted_len() -> usize {
+        use sodiumoxide::crypto::box_::PUBLICKEYBYTES;
+        PUBLICKEYBYTES*2
+    }
+    fn from_rawhex(hex : &str) -> Result<Self> {
+        if hex.len() != Self::formatted_len() {
+            bail!(ErrorKind::RawHexEncodedKeyWrongLength(
+                "public signing".to_owned(), hex.len(), Self::formatted_len()));
         }
-        let bytes = try!(hex_to_bytes(&hex[..]).map_err(|e| format!("Could not decode hex string. ({}).", e)));
+        let bytes = hex_to_bytes(&hex[..])
+            .chain_err(|| ErrorKind::CouldNotDecodeHex)?;
         Self::from_slice(bytes.as_slice()).ok_or("Some error that should not happen.".into())
     }
     fn into_rawhex(&self) -> String {
@@ -166,7 +287,7 @@ fn test_enc_public_key_to_string() {
              121,122,123,124,125,126,127,128,
              211,212,213,214,215,216,217,218,].as_slice()).unwrap();
 
-    let kb = key.into_keybaseformat();
+    let kb = key.into_keybaseformat(KeybaseKeyFormatVersion::Version1);
     let hex = key.into_rawhex();
     assert_eq!("01020304050607083d3e3f4041424344797a7b7c7d7e7f80d3d4d5d6d7d8d9da", hex);
     assert_eq!("012101020304050607083d3e3f4041424344797a7b7c7d7e7f80d3d4d5d6d7d8d9da0a", kb);
@@ -185,7 +306,7 @@ fn test_sign_public_key_to_string() {
              121,122,123,124,125,126,127,128,
              211,212,213,214,215,216,217,218,].as_slice()).unwrap();
 
-    let kb = key.into_keybaseformat();
+    let kb = key.into_keybaseformat(Default::default());
     let hex = key.into_rawhex();
     assert_eq!("01020304050607083d3e3f4041424344797a7b7c7d7e7f80d3d4d5d6d7d8d9da", hex);
     assert_eq!("012001020304050607083d3e3f4041424344797a7b7c7d7e7f80d3d4d5d6d7d8d9da0a", kb);

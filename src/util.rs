@@ -1,26 +1,11 @@
 use std;
 use ::SBNonce;
 
+//use errors::*;
 
 
-pub fn bytes_to_hex(bin : &[u8]) -> String {
-    use std::fmt::Write;
-    let mut out = String::with_capacity(bin.len() * 2);
-    for b in bin.iter() {
-        write!(out, "{:02x}", b).ok();
-    }
-    out
-}
 
-pub fn hex_to_bytes(hex : &str) -> Result<Vec<u8>, String> {
-    use std::error::Error;
-    let mut bin = Vec::with_capacity(hex.len() / 2 + 1);
-    for b in hex.as_bytes().chunks(2) {
-        let c = try!(std::str::from_utf8(&b).map_err(|e| e.description().to_string()));
-        bin.push(try!(u8::from_str_radix(&c, 16).map_err(|e| e.description().to_string())));
-    }
-    Ok(bin)
-}
+
 
 
 
@@ -69,20 +54,20 @@ pub fn make_payloadpacket_nonce(packetnumber : u64) -> SBNonce {
 
 pub trait TryFrom<T>: Sized {
     type Error;
-    fn try_from(value: T) -> Result<Self, Self::Error>;
+    fn try_from(value: T) -> ::std::result::Result<Self, Self::Error>;
 }
 
 pub trait TryInto<T>: Sized {
     type Error;
 
-    fn try_into(self) -> Result<T, Self::Error>;
+    fn try_into(self) -> ::std::result::Result<T, Self::Error>;
 }
 
 impl<T, U> TryInto<U> for T where U: TryFrom<T>
 {
     type Error = U::Error;
 
-    fn try_into(self) -> Result<U, U::Error> {
+    fn try_into(self) -> ::std::result::Result<U, U::Error> {
         U::try_from(self)
     }
 }

@@ -1,4 +1,5 @@
 
+#![recursion_limit="128"]
 
 #[macro_use] extern crate serde_derive;
 
@@ -21,6 +22,11 @@ extern crate num_bigint;
 #[cfg(feature = "num-bigint")]
 extern crate num_traits;
 
+#[macro_use]
+extern crate error_chain;
+
+
+pub mod errors;
 pub mod encrypt;
 pub mod parse;
 pub mod armor;

@@ -35,6 +35,7 @@ use ::SaltpackMessageType;
 use util::Consumable;
 use util::TryInto;
 use base62::decode_base62;
+use errors::*;
 
 /// Removes all chars that can not occur within saltpacks.
 /// (keeps [A-Za-z0-9.])
@@ -101,7 +102,7 @@ pub struct Dearmored {
 /// Returns no more than `max` dearmored saltpacks.
 ///
 /// [`Dearmored`]: struct.Dearmored.html
-pub fn dearmor(text : Stripped, max : usize) -> Result<Vec<Dearmored>, String> {
+pub fn dearmor(text : Stripped, max : usize) -> Result<Vec<Dearmored>> {
     let mut saltpacks = Vec::<Dearmored>::with_capacity(min(3, max));
 
     let mut text : Vec<u8> = text.0; // mut for inplace editing in decode_base62

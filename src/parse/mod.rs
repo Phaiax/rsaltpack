@@ -1,8 +1,33 @@
-//! Decrypt Saltpacks.
-//!
-//!
+//! Decrypt and verify saltpacks.
 //!
 //! # Usage
+//!
+//! Usually you start with a binary stream of data, that implements `Read` and
+//! contains a binary saltpack.
+//!
+//! The first step is to read the first few bytes of the saltpack (the header)
+//!  and determine the saltpack type (signed, encrypted) and the saltpack version.
+//! This is done by calling the API entry point `parse::SaltpackHeader::read_header()`.
+//!
+//! Then you have to check if the saltpack type matches the type you expected
+//! or start handling the different types. You can do this by calling
+//! `is_mode_xxx()` on the SaltpackHeader. Currently only the encryption
+//! mode is supported.
+//!
+//!  - When `is_mode_encryption()` returns true, you can start decrypting.
+//!    By calling `verify()` with the private key of the receiver, you get
+//!    a `SaltpackDecrypter` that does the decryption. Call `read_payload()`
+//!    and you'll get a `Vec<Vec<u8>>` out of performance reasons.
+//!
+//! ## Notes
+//!
+//! - A mutable slice implements `Read`.
+//! - If you got an armored saltpack you need to remove the armor first
+//! by using the dearmor module.
+//! - Use `.map(parse::concat)` to create a single `Vec<>` from the nested
+//!    `Vec<Vec<u8>>`.
+//!
+//! # Example
 //!
 //! ```
 //! // Stakeholders
@@ -23,36 +48,44 @@
 //! let mut read_email = &email[..];
 //! let mut header = parse::SaltpackHeader::read_header(&mut read_email).unwrap();
 //! if header.is_mode_encryption() {
-//!     let mut decryptor = header.verify(&recipient.s).unwrap(); // recipient knows its secret key
-//!     let data_2 = decryptor.read_payload(&mut read_email).map(parse::concat).unwrap();
+//!     // recipient knows its secret key
+//!     let mut decryptor = header.verify(&recipient.s).unwrap();
+//!     let data_2 = decryptor.read_payload(&mut read_email)
+//!                           .map(parse::concat).unwrap();
 //!     assert_eq!(&data[..], &data_2[..]);
 //! }
 //! ```
 //!
+//! # Dealing with old saltpack Versions
 //!
+//! This library is backwards compatible to all saltpack versions.
 //!
-//!
-//!
-//!
-//!
-//!
-//!
-
-use ::util;
+//! As a user of the library, that wants to support all versions, you should
+//! use the enums from this module that do not have a version postfix.
+//! These enums relay the actual work to the implementation that
+//! can read the received saltpack data. For example the `SaltpackDecrypter`
+//! uses the functionality implemented in the `SaltpackDecrypter10` if it
+//! encounters a saltpack in version 1.0. The specialised versions may offer
+//! additional methods that may not be compatible with future versions of
+//! saltpack. You can use them, but you will have to `match` to support all
+//! currently implemented versions.
 
 use std::io::Read;
 use std::io::Write;
 use std::io::ErrorKind;
+use std::char::from_u32;
+
+use {CBNonce, SBNonce, SaltpackMessageType};
+use key::{EncryptionSecretKey, EncryptionPublicKey, Key};
+use util;
+
 use rmpv::decode;
 use rmpv::Value;
-use std::char::from_u32;
 
 use sodiumoxide::crypto::hash::sha512::{hash, Digest};
 use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::secretbox;
 use sodiumoxide::crypto::auth;
-use ::{CBNonce, SBNonce, SaltpackMessageType};
-use ::key::{EncryptionSecretKey, EncryptionPublicKey, Key};
 
 
 
@@ -63,10 +96,10 @@ use ::key::{EncryptionSecretKey, EncryptionPublicKey, Key};
 // #######             VERSIONLESS INTERFACE            ########################
 // #############################################################################
 
-/// Starting point for future proof implementations. Detects Version automatically.
+/// API starting point. Reads saltpack header and detects saltpack version automatically.
 ///
-/// Start by calling `let header = SaltpackHeader::read_header(&buffer[..])`
-/// Then test the mode.
+/// Start by calling `let header = SaltpackHeader::read_header(&buffer)`
+/// Then test the saltpack mode.
 ///
 /// ## Encryption mode
 ///
@@ -83,7 +116,7 @@ pub enum SaltpackHeader {
 #[derive(Debug)]
 /// Possible errors of `read_header()`
 pub enum ParseError{
-    WrongSaltpackVersion(String, u64, u64),
+    UnsupportedSaltpackVersion(String, u64, u64),
     UnknownMode(String, u64),
     NotWellFormed(String),
 }
@@ -91,30 +124,40 @@ pub enum ParseError{
 
 
 impl SaltpackHeader {
+    /// API Entry point for parsing/decrypting saltpacks.
+    pub fn read_header<R : Read>(mut raw: &mut R) -> Result<SaltpackHeader, ParseError> {
 
-    /// Entry point for decrypting saltpacks.
-    pub fn read_header<R>(mut raw: &mut R) -> Result<SaltpackHeader, ParseError>
-      where R: Read {
-        // try version 1.0
-        let mut try = (1, 0);
+        // The `Read` stream can only be read once, so we peel the outer message
+        // pack here and not in `SaltpackHeader10`. => Vec<u8>
 
-        // log to prevent deadlocks
+        // 1 Deserialize the header bytes from the message stream using MessagePack. (What's on the wire is twice-encoded, so the result of unpacking will be once-encoded bytes.)
+        let nested_messagepack : Vec<u8> = try!(peel_outer_messagepack_encoding(&mut raw));
+
+
+        // Find out version of saltpack. First try `try_version`. If it fails, use the
+        // version info returned in the `Err` to select the right version. Try
+        // again.
+        let mut try_version = (1, 0);
+
+        // Do not try the same version twice.
         let mut tried = vec![];
 
         loop {
-            let header = match try {
-                (1, _) => SaltpackHeader10::read_header(&mut raw)
+            // Try.
+            let header = match try_version {
+                (1, _) => SaltpackHeader10::parse_nested_messagepack(nested_messagepack.as_slice())
                           .map(|h| SaltpackHeader::Version10(h) ),
 
-                (a, b) => Err(ParseError::WrongSaltpackVersion("".into(), a, b)) ,
+                (a, b) => Err(ParseError::UnsupportedSaltpackVersion("".into(), a, b)) ,
             };
+            tried.push(try_version);
 
+            // Adjust `try_version` based on returned Err()
             match header {
-                Err(ParseError::WrongSaltpackVersion(_, a, b)) => {
-                    tried.push(try);
-                    try = (a, b);
-                    if (&tried[..]).contains(&try) {
-                        return Err(ParseError::WrongSaltpackVersion(
+                Err(ParseError::UnsupportedSaltpackVersion(_, a, b)) => {
+                    try_version = (a, b);
+                    if (&tried[..]).contains(&try_version) {
+                        return Err(ParseError::UnsupportedSaltpackVersion(
                                        format!("Parser for version {}.{} not implemented.",
                                                a, b),
                                        a, b));
@@ -171,8 +214,7 @@ impl SaltpackDecrypter {
 // #############################################################################
 
 
-fn peel_outer_messagepack_encoding<R>(mut raw: &mut R) -> Result<Vec<u8>, ParseError>
-  where R: Read {
+fn peel_outer_messagepack_encoding<R : Read>(mut raw: &mut R) -> Result<Vec<u8>, ParseError> {
     match decode::read_value(&mut raw) {
         Ok(Value::Binary(bin)) => Ok(bin),
         Err(s) => Err(ParseError::NotWellFormed(format!("Not a messagepack stream. {}", s))),
@@ -231,7 +273,7 @@ fn check_header_format_and_version(arr: &Vec<Value>,
 
     // 4.2.2 check version number to be [1 0]
     if version_major != expected_version_major || version_minor != expected_version_minor {
-        return Err(ParseError::WrongSaltpackVersion(
+        return Err(ParseError::UnsupportedSaltpackVersion(
                     format!("Saltpack version {}.{} found. This is the decoder for Version {}.{}",
                             version_major,
                             version_minor,
@@ -351,16 +393,19 @@ pub enum SaltpackHeader10 {
 
 impl SaltpackHeader10 {
 
-    pub fn read_header<R>(mut raw: &mut R) -> Result<SaltpackHeader10, ParseError>
-      where R: Read {
+    pub fn read_header<R: Read>(mut raw: &mut R) -> Result<SaltpackHeader10, ParseError> {
         // 1 Deserialize the header bytes from the message stream using MessagePack. (What's on the wire is twice-encoded, so the result of unpacking will be once-encoded bytes.)
-        let nested_binary : Vec<u8> = try!(peel_outer_messagepack_encoding(&mut raw));
+        let nested_messagepack : Vec<u8> = try!(peel_outer_messagepack_encoding(&mut raw));
 
+        Self::parse_nested_messagepack(nested_messagepack.as_slice())
+    }
+
+    fn parse_nested_messagepack(nested_messagepack : &[u8]) -> Result<SaltpackHeader10, ParseError> {
         // 2 Compute the crypto_hash (SHA512) of the bytes from #1 to give the header hash.
-        let headerhash = hash(&nested_binary[..]);
+        let headerhash = hash(&nested_messagepack[..]);
 
         // 3 Deserialize the bytes from #1 again using MessagePack to give the header list.
-        let mut reader : &[u8] = nested_binary.as_slice();
+        let mut reader : &[u8] = &nested_messagepack[..];
 
         // 3.1 retrieve array as `arr`
         let arr : Vec<Value> = try!(get_header_array(&mut reader, 2));

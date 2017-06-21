@@ -3,7 +3,7 @@ extern crate rsaltpack;
 fn main() {
 
     // Stakeholders
-    use rsaltpack::key::{EncryptionKeyPair, KeybaseFormat, EncryptionPublicKey};
+    use rsaltpack::key::{EncryptionKeyPair, KeybaseKeyFormat, EncryptionPublicKey};
     let sender = EncryptionKeyPair::gen();
 
 

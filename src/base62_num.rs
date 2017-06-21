@@ -5,6 +5,8 @@ use std::iter::repeat;
 
 use armor::{SPACE_EVERY, NEWLINE_EVERY, BUF_SIZE, CHARS_PER_BLOCK, BYTES_PER_BLOCK};
 
+use errors::*;
+
 /// This function converts a zero based digit in base 62 to its ascii equivalent.
 #[inline]
 pub fn alphabet(i : u8) -> u8 {
@@ -189,12 +191,12 @@ pub fn b32bytes_to_base62_formatted(raw_in : &[u8],
 /// Returns the number of bytes written.
 /// [`CHARS_PER_BLOCK`]: ../armor/constant.CHARS_PER_BLOCK.html
 /// [`BYTES_PER_BLOCK`]: ../armor/constant.BYTES_PER_BLOCK.html
-pub fn decode_base62_block(base62 : &[u8], mut out_buffer : &mut[u8]) -> Result<usize, String> {
+pub fn decode_base62_block(base62 : &[u8], mut out_buffer : &mut[u8]) -> Result<usize> {
     use std::io::Write;
 
     let (needed_output_len, valid) = BYTEBLOCKSIZE_BY_CHARBLOCKSIZE[base62.len()];
     if valid == Invalid {
-        return Err("Error while decoding base62: Invalid block size.".to_string())
+        bail!(ErrorKind::BadArmor);
     }
 
     assert!(out_buffer.len() >= needed_output_len);
@@ -216,7 +218,7 @@ pub fn decode_base62_block(base62 : &[u8], mut out_buffer : &mut[u8]) -> Result<
 
 /// Decodes stripped (only ascii, no whitespace) base62 coded data into its raw representation
 /// Reuses the ascii_input as buffer, that means the data is unusable afterwards.
-pub fn decode_base62<'a>(ascii_input : &mut [u8]) -> Result<Vec<u8>, String> {
+pub fn decode_base62<'a>(ascii_input : &mut [u8]) -> Result<Vec<u8>> {
     // base62 efficiency is 75%, so we can assume maximum raw data length.
     // (+rounding +last non full block needs still place of a full block (max 32))
     let max_output_size = ascii_input.len() * 3 / 4 + 1 + 32;
