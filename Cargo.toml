@@ -5,8 +5,8 @@ authors = ["Phaiax <phaiax-rsaltpack@invisibletower.de>"]
 
 [features]
 
-default = ['num-bigint']
-fast_math = ['ramp']
+default = ["num-bigint"]
+fast_math = ["ramp"]
 
 [dependencies]
 serde = "1.0"

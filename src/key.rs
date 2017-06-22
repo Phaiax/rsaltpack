@@ -65,7 +65,68 @@ use sodiumoxide::crypto::box_;
 use sodiumoxide::crypto::sign;
 
 use std::str::from_utf8;
-use errors::*;
+use self::errors::*;
+
+pub mod errors {
+    error_chain! {
+        types { KeyError, KeyErrorKind, KeyResultExt, KeyResult; }
+
+        errors {
+            #[doc = "String has wrong length. Data: (received_len)"]
+            KeybaseKeyWrongLength(length: usize) {
+                description("String has wrong length. \
+                    Keybase formated keys have a length of 70 chars.")
+                display("String has wrong length. \
+                    Expected 70 chars but got {} chars.", length)
+            }
+
+            #[doc = "Given string is not a keybase public key."]
+            KeybaseKeyNotAPublicKey {
+                description("Given string is not a keybase public key. \
+                    Keybase formated keys end with `0a`.")
+            }
+
+            #[doc = "Unsupported keybase key version. Data: (received_version)"]
+            KeybaseKeyUnsupportedVersion(v: String) {
+                description("Unsupported keybase key version.")
+                display("Unsupported keybase key version. Got version {}.", v)
+            }
+
+            #[doc = "Given key is not a encryption key"]
+            KeybaseKeyNotAnEncryptionKey {
+                description("Given key is not an encryption key. \
+                    Keybase encryption keys start with `0121`.")
+            }
+
+            #[doc = "Given key is not a signing key"]
+            KeybaseKeyNotASigningKey {
+                description("Given key is not a signing key. \
+                    Keybase signing keys start with `0120`.")
+            }
+
+            #[doc = "Wrong Length. Data: (keytype, received_len, expected_len)"]
+            RawHexEncodedKeyWrongLength(type_: String, got: usize, expected: usize) {
+                description("Hex encoded key has wrong length.")
+                display("Hex encoded {} key has wrong length. \
+                    Expected {} chars but got {} chars.", type_, expected, got)
+            }
+
+            #[doc = "Error while decoding hex encoded string."]
+            CouldNotDecodeHex {
+                description("Error while decoding hex encoded string. \
+                    Only ascii numerals and chars from a-f are allowed.")
+            }
+        }
+
+        foreign_links {
+
+            Utf8Error(::std::str::Utf8Error) #[doc = "Foreign error: std::str::Utf8Error"];
+
+            ParseIntError(::std::num::ParseIntError) #[doc = "Foreign error: std::num::ParseIntError"];
+        }
+    }
+}
+
 
 /// Composition of a public key and a secret key for
 /// asymmetric authenticated encryption.
@@ -105,11 +166,11 @@ impl SigningKeyPair {
 /// Parses hex formatted data.
 ///
 /// # Errors
-/// This function can return the ErrorKinds
+/// This function can return the KeyErrorKinds
 ///
 ///  - `Utf8Error`
 ///  - `ParseIntError`
-pub fn hex_to_bytes(hex : &str) -> Result<Vec<u8>> {
+pub fn hex_to_bytes(hex : &str) -> KeyResult<Vec<u8>> {
     let mut bin = Vec::with_capacity(hex.len() / 2 + 1);
     for b in hex.as_bytes().chunks(2) {
         let c = from_utf8(&b)?;
@@ -131,21 +192,21 @@ pub fn bytes_to_hex(bin : &[u8]) -> String {
 /// Checks the common traits of keybase formated keys and returns the type part.
 ///
 /// # Errors
-/// This function can return the ErrorKinds
+/// This function can return the KeyErrorKinds
 ///
 ///  - `KeybaseKeyNotAPublicKey`
 ///  - `KeybaseKeyUnsupportedVersion`
 ///  - `KeybaseKeyWrongLength`
-fn check_keybase_format(hex : &str) -> Result<&str> {
+fn check_keybase_format(hex : &str) -> KeyResult<&str> {
     let len = hex.len();
     if &hex[len-2..len] != "0a" {
-        bail!(ErrorKind::KeybaseKeyNotAPublicKey);
+        bail!(KeyErrorKind::KeybaseKeyNotAPublicKey);
     }
     if &hex[0..2] != "01" {
-        bail!(ErrorKind::KeybaseKeyUnsupportedVersion(hex[0..2].to_owned()));
+        bail!(KeyErrorKind::KeybaseKeyUnsupportedVersion(hex[0..2].to_owned()));
     }
     if hex.len() != 35*2 {
-        bail!(ErrorKind::KeybaseKeyWrongLength(hex.len()));
+        bail!(KeyErrorKind::KeybaseKeyWrongLength(hex.len()));
     }
     return Ok(&hex[2..4])
 }
@@ -169,25 +230,25 @@ pub trait KeybaseKeyFormat : Sized {
     /// Parses a key given in keybases human readable KID style.
     ///
     /// # Errors
-    /// This function can return the ErrorKinds
+    /// This function can return the KeyErrorKinds
     ///
     ///  - `KeybaseKeyNotAPublicKey`
     ///  - `KeybaseKeyUnsupportedVersion`
     ///  - `KeybaseKeyWrongLength`
     ///  - `KeybaseKeyNotAnEncryptionKey` or `KeybaseKeyNotASigningKey`
     ///  - `CouldNotDecodeHex`
-    fn from_keybaseformat(keybase_formatted_key : &str) -> Result<Self>;
+    fn from_keybaseformat(keybase_formatted_key : &str) -> KeyResult<Self>;
     /// Formats the key data in keybases human readable KID style.
     fn into_keybaseformat(&self, v : KeybaseKeyFormatVersion) -> String;
 }
 
 impl KeybaseKeyFormat for EncryptionPublicKey {
-    fn from_keybaseformat(keybase_formatted_key : &str) -> Result<Self> {
+    fn from_keybaseformat(keybase_formatted_key : &str) -> KeyResult<Self> {
         if check_keybase_format(&keybase_formatted_key)? != "21" {
-            bail!(ErrorKind::KeybaseKeyNotAnEncryptionKey);
+            bail!(KeyErrorKind::KeybaseKeyNotAnEncryptionKey);
         }
         let bytes = hex_to_bytes(&keybase_formatted_key[4..68])
-            .chain_err(|| ErrorKind::CouldNotDecodeHex)?;
+            .chain_err(|| KeyErrorKind::CouldNotDecodeHex)?;
         Ok(Self::from_slice(bytes.as_slice()).unwrap())
     }
     fn into_keybaseformat(&self, v : KeybaseKeyFormatVersion) -> String {
@@ -205,12 +266,12 @@ impl KeybaseKeyFormat for EncryptionPublicKey {
 
 
 impl KeybaseKeyFormat for SigningPublicKey {
-    fn from_keybaseformat(hex : &str) -> Result<Self> {
+    fn from_keybaseformat(hex : &str) -> KeyResult<Self> {
         if check_keybase_format(&hex)? != "20" {
-            bail!(ErrorKind::KeybaseKeyNotASigningKey);
+            bail!(KeyErrorKind::KeybaseKeyNotASigningKey);
         }
         let bytes = hex_to_bytes(&hex[4..68])
-            .chain_err(|| ErrorKind::CouldNotDecodeHex)?;
+            .chain_err(|| KeyErrorKind::CouldNotDecodeHex)?;
         Ok(Self::from_slice(bytes.as_slice()).unwrap())
     }
     fn into_keybaseformat(&self, v : KeybaseKeyFormatVersion) -> String {
@@ -232,11 +293,11 @@ pub trait RawHexEncoding : Sized {
     /// Parses a hex string.
     ///
     /// # Errors
-    /// This function can return the ErrorKinds
+    /// This function can return the KeyErrorKinds
     ///
     ///  - `RawHexEncodedKeyWrongLength`
     ///  - `CouldNotDecodeHex`
-    fn from_rawhex(hex : &str) -> Result<Self>;
+    fn from_rawhex(hex : &str) -> KeyResult<Self>;
     fn into_rawhex(&self) -> String;
     fn formatted_len() -> usize;
 }
@@ -246,13 +307,13 @@ impl RawHexEncoding for EncryptionPublicKey {
         use sodiumoxide::crypto::box_::PUBLICKEYBYTES;
         PUBLICKEYBYTES*2
     }
-    fn from_rawhex(hex : &str) -> Result<Self> {
+    fn from_rawhex(hex : &str) -> KeyResult<Self> {
         if hex.len() != Self::formatted_len() {
-            bail!(ErrorKind::RawHexEncodedKeyWrongLength(
+            bail!(KeyErrorKind::RawHexEncodedKeyWrongLength(
                 "public encryption".to_owned(), hex.len(), Self::formatted_len()));
         }
         let bytes = hex_to_bytes(&hex[..])
-            .chain_err(|| ErrorKind::CouldNotDecodeHex)?;
+            .chain_err(|| KeyErrorKind::CouldNotDecodeHex)?;
         Ok(Self::from_slice(bytes.as_slice()).unwrap())
     }
     fn into_rawhex(&self) -> String {
@@ -265,13 +326,13 @@ impl RawHexEncoding for SigningPublicKey {
         use sodiumoxide::crypto::box_::PUBLICKEYBYTES;
         PUBLICKEYBYTES*2
     }
-    fn from_rawhex(hex : &str) -> Result<Self> {
+    fn from_rawhex(hex : &str) -> KeyResult<Self> {
         if hex.len() != Self::formatted_len() {
-            bail!(ErrorKind::RawHexEncodedKeyWrongLength(
+            bail!(KeyErrorKind::RawHexEncodedKeyWrongLength(
                 "public signing".to_owned(), hex.len(), Self::formatted_len()));
         }
         let bytes = hex_to_bytes(&hex[..])
-            .chain_err(|| ErrorKind::CouldNotDecodeHex)?;
+            .chain_err(|| KeyErrorKind::CouldNotDecodeHex)?;
         Self::from_slice(bytes.as_slice()).ok_or("Some error that should not happen.".into())
     }
     fn into_rawhex(&self) -> String {
