@@ -12,7 +12,7 @@ pub fn concat(mut chunks: Vec<Vec<u8>>) -> Vec<u8> {
 
     let len = chunks.iter().fold(0, |l, inner| l + inner.len());
     let mut ret = Vec::with_capacity(len);
-    for mut inner in chunks.iter_mut() {
+    for mut inner in &mut chunks {
         ret.write_all(&inner[..]).unwrap();
         for c in inner.iter_mut() {
             *c = 0;

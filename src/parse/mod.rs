@@ -184,7 +184,7 @@ impl Encrypted {
     pub fn verify(&mut self, recipient_priv_key : &EncryptionSecretKey) -> Result<Decrypter, ParseError> {
         match *self {
             Encrypted::Version10(ref mut e)
-                => e.verify(&recipient_priv_key).map(Into::into),
+                => e.verify(recipient_priv_key).map(Into::into),
         }
     }
 }

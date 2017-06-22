@@ -17,7 +17,7 @@
 //! saltpack.flush().unwrap();
 //!
 //! let mut armored : ArmoredSaltpack = saltpack.armor("").unwrap();
-//! println!("{}", armored.to_string()); // read all
+//! println!("{}", armored.into_string()); // read all
 //! // or use std::io::Read on armored to get ascii character as binary string.
 //! ```
 //!
@@ -156,7 +156,7 @@ pub struct Saltpack {
 }
 
 pub fn encrypt_to_binary(sender : Option<&EncryptionKeyPair>,
-                      recipients : &Vec<EncryptionPublicKey>,
+                      recipients : &[EncryptionPublicKey],
                       payload : &[u8]) -> Vec<u8> {
     let mut saltpack = Saltpack::encrypt(sender, recipients);
     saltpack.write_all(payload).unwrap();
@@ -168,13 +168,13 @@ pub fn encrypt_to_binary(sender : Option<&EncryptionKeyPair>,
 
 
 pub fn encrypt_and_armor(sender : Option<&EncryptionKeyPair>,
-                      recipients : &Vec<EncryptionPublicKey>,
+                      recipients : &[EncryptionPublicKey],
                       payload : &[u8],
                       vendor : &str) -> Result<String> {
     let mut saltpack = Saltpack::encrypt(sender, recipients);
     saltpack.write_all(payload).unwrap();
     saltpack.flush().unwrap();
-    let encrypted = saltpack.armor(&vendor)?.to_string();
+    let encrypted = saltpack.armor(vendor)?.into_string();
     Ok(encrypted)
 }
 
@@ -184,7 +184,7 @@ impl Saltpack {
     ///
     /// For anonymous sending, set `sender` to `None`.
     pub fn encrypt(sender : Option<&EncryptionKeyPair>,
-                   recipients : &Vec<EncryptionPublicKey>) -> Saltpack
+                   recipients : &[EncryptionPublicKey]) -> Saltpack
     {
         // 1 Generate a random 32-byte payload key.
         let payload_key : Key = secretbox::gen_key();
@@ -208,7 +208,7 @@ impl Saltpack {
             bytes_read_from_first_output_buffer_element : 0,
         };
 
-        new_saltpack.compose_saltpack_header(&sender, &recipients, &eph_key);
+        new_saltpack.compose_saltpack_header(sender, recipients, &eph_key);
         new_saltpack
     }
 
@@ -245,14 +245,14 @@ impl Saltpack {
 
     fn compose_saltpack_header(&mut self,
                                sender : &EncryptionKeyPair,
-                               recipients : &Vec<EncryptionPublicKey>,
+                               recipients : &[EncryptionPublicKey],
                                eph_key : &EncryptionKeyPair)
     {
 
         // 3 Encrypt the sender's long-term public key using crypto_secretbox with the payload key and the nonce `saltpack_sender_key_sbox`, to create the sender secretbox.
         let secretbox_sender_p = secretbox::seal(/*msg*/&sender.p.0,
                                                  /*nonce*/&SBNonce(*b"saltpack_sender_key_sbox"),
-                                                 /*key*/&self.payload_key.as_ref().unwrap());
+                                                 /*key*/self.payload_key.as_ref().unwrap());
 
         // 4 For each recipient, encrypt the payload key using crypto_box with the recipient's public key, the ephemeral private key, and the nonce saltpack_payload_key_box. Pair these with the recipients' public keys, or null for anonymous recipients, and collect the pairs into the recipients list.
         let mut recipients_list = Vec::<_>::with_capacity(recipients.len());
@@ -260,7 +260,7 @@ impl Saltpack {
         for recip_key in recipients.iter() {
             let cryptobox_payloadkey_for_recipient = box_::seal(/*msg*/&self.payload_key.as_ref().unwrap().0,
                                                  /*nonce*/&CBNonce(*b"saltpack_payload_key_box"),
-                                                 /*p key*/&recip_key,
+                                                 /*p key*/recip_key,
                                                  /*s key*/&eph_key.s);
             // A recipient pair is a two-element list: [recipient public key, payload key box]
             let recip_pair = RecipSerializable( ByteBuf::from(Vec::from(&recip_key.0[..])),
@@ -311,13 +311,13 @@ impl Saltpack {
         for recip_key in recipients.iter() {
             let mut mac_box = box_::seal(/*msg*/&zeros,
                                      /*nonce*/&nonce,
-                                     /*p key*/&recip_key,
+                                     /*p key*/recip_key,
                                      /*s key*/&sender.s);
             let mac_box_len = mac_box.len();
             let mac = auth::Key::from_slice(&mac_box[(mac_box_len-32)..]).unwrap();
 
             // wipe mac_box
-            for b in mac_box.iter_mut() { *b = 0; }
+            for b in &mut mac_box { *b = 0; }
 
             self.macs.push(mac);
         }
@@ -330,7 +330,7 @@ impl Saltpack {
         }
 
         // no data
-        if self.input_buffer.len() == 0 {
+        if self.input_buffer.is_empty() {
             return false;
         }
         //$ println!("Encr START");
@@ -345,7 +345,7 @@ impl Saltpack {
         //$ println!("   Secretbox BEGIN");
         let secretbox_payload = secretbox::seal(/*msg*/&payload[..],
                                                  /*nonce*/&nonce,
-                                                 /*key*/&self.payload_key.as_ref().unwrap());
+                                                 /*key*/self.payload_key.as_ref().unwrap());
         //$ println!("   Secretbox END");
 
 
@@ -367,8 +367,8 @@ impl Saltpack {
         let mut authenticators = Vec::with_capacity(self.macs.len());
         let mut bufsize = secretbox_payload.len() + 12;
         //$ println!("       Auth BEGIN");
-        for mac in self.macs.iter() {
-            let tag = auth::authenticate(&packethash.0, &mac);
+        for mac in &self.macs {
+            let tag = auth::authenticate(&packethash.0, mac);
             bufsize += tag.0.len() + 2;
             authenticators.push(ByteBuf::from(Vec::from(&tag.0[..])));
         }
@@ -478,8 +478,8 @@ impl Write for Saltpack {
 impl Read for Saltpack {
     fn read(&mut self, mut buffer: &mut [u8]) -> std::io::Result<usize> {
         let mut bytes_read = 0;
-        while buffer.len() > 0 { // still place to write
-            if self.output_buffer.len() > 0 {
+        while !buffer.is_empty() { // still place to write
+            if !self.output_buffer.is_empty() {
                 // write already encrypted to output
                 let written = {
                     let br = self.bytes_read_from_first_output_buffer_element;
@@ -522,13 +522,14 @@ impl Write for ArmoredSaltpack {
 
 impl Read for ArmoredSaltpack {
 
+    #[cfg_attr(feature = "cargo-clippy", allow(if_same_then_else))]
     /// Writes the armored saltpack (ascii only characters) as binary data (u8)
     /// into `buffer`.
     fn read(&mut self, mut buffer : &mut [u8]) -> std::io::Result<usize> {
         use util::Consumable;
         let mut bytes_read = 0;
-        while buffer.len() > 0 { // still place to write
-            if self.saltpack.output_buffer.len() > 0 {
+        while !buffer.is_empty() { // still place to write
+            if !self.saltpack.output_buffer.is_empty() {
                 // pipe already encrypted through armoring and let armor() directly write to buffer
                 let (read_from_front, written_into_buffer) = {
                     let br = self.saltpack.bytes_read_from_first_output_buffer_element;
@@ -578,7 +579,7 @@ impl ArmoredSaltpack {
     }
 
     /// Outputs all
-    pub fn to_string(&mut self) -> String {
+    pub fn into_string(mut self) -> String {
         self.flush().unwrap();
         let bin_len = self.saltpack.predict_len();
         let armored_len = self.armoring_stream.predict_armored_len(bin_len);
@@ -649,8 +650,8 @@ mod tests {
         use std::io::Write;
         saltpack.write_all(b"I love you").unwrap();
         saltpack.flush().unwrap();
-        let mut armored = saltpack.armor("").unwrap();
-        println!("{}", armored.to_string()); // read all
+        let armored = saltpack.armor("").unwrap();
+        println!("{}", armored.into_string()); // read all
     }
 
     /*#[bench]

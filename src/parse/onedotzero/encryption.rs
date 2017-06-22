@@ -36,7 +36,7 @@ impl Encrypted10 {
     pub fn verify(&self, recipient_priv_key: &EncryptionSecretKey) -> ParseResult<Decrypter10> {
         // 5 Precompute the ephemeral shared secret using crypto_box_beforenm
         // with the ephemeral public key and the recipient's private key.
-        let precomputed_key = box_::precompute(&self.eph_pub, &recipient_priv_key);
+        let precomputed_key = box_::precompute(&self.eph_pub, recipient_priv_key);
 
         // 6 Try to open each of the payload key boxes in the recipients list
         // using crypto_box_open_afternm, the precomputed secret from #5, and
@@ -46,26 +46,25 @@ impl Encrypted10 {
         let mut recipient_index = None;
         let mut payload_key = None;
         for (i, recipient) in self.recipients.iter().enumerate() {
-            match box_::open_precomputed(
-                &recipient.payloadkey_cryptobox[..],
-                &CBNonce(*b"saltpack_payload_key_box"),
-                &precomputed_key,
-            ) {
-                Ok(payload_key__) => {
-                    let payload_key_ = Key::from_slice(&payload_key__[..]);
-                    if payload_key_.is_none() {
-                        return not_well_formed!(
-                            "Decrypted payload key has wrong format. (has {} bytes, expected {})",
-                            payload_key__.len(),
-                            secretbox::KEYBYTES
-                        );
-                    }
-                    payload_key = Some(payload_key_.unwrap());
-                    recipient_index = Some(i);
-                    break;
+            if let Ok(payload_key__) =
+                box_::open_precomputed(
+                    &recipient.payloadkey_cryptobox[..],
+                    &CBNonce(*b"saltpack_payload_key_box"),
+                    &precomputed_key,
+                )
+            {
+                let payload_key_ = Key::from_slice(&payload_key__[..]);
+                if payload_key_.is_none() {
+                    return not_well_formed!(
+                        "Decrypted payload key has wrong format. (has {} bytes, expected {})",
+                        payload_key__.len(),
+                        secretbox::KEYBYTES
+                    );
                 }
-                Err(_) => {}
-            };
+                payload_key = Some(payload_key_.unwrap());
+                recipient_index = Some(i);
+                break;
+            }
         }
 
         if payload_key.is_none() {
@@ -112,13 +111,13 @@ impl Encrypted10 {
             /*p key*/
             &sender_pub_key,
             /*s key*/
-            &recipient_priv_key,
+            recipient_priv_key,
         );
         let mac_box_len = mac_box.len();
         let mac = auth::Key::from_slice(&mac_box[(mac_box_len - 32)..]).unwrap();
 
         // wipe mac_box
-        for b in mac_box.iter_mut() {
+        for b in &mut mac_box {
             *b = 0;
         }
 
@@ -191,7 +190,7 @@ impl Decrypter10 {
                     return Err(x);
                 }
             };
-            if payload_packet.len() == 0 {
+            if payload_packet.is_empty() {
                 // last packet
                 return Ok(payload);
             }
@@ -260,21 +259,21 @@ impl Decrypter10 {
         }
     }
 
-    fn get_payload_secretbox(arr: &Vec<Value>) -> ParseResult<Vec<u8>> {
+    fn get_payload_secretbox(arr: &[Value]) -> ParseResult<Vec<u8>> {
         if arr.len() < 2 {
             return not_well_formed!("Payload array has only {} elements, 2 needed", arr.len());
         }
-        match arr.get(1).unwrap().clone() {
+        match arr[1].clone() {
             Value::Binary(bin) => Ok(bin),
             _ => not_well_formed!("Payload secretbox field[1] is not of type binary"),
         }
     }
 
-    fn get_authenticator(arr: &Vec<Value>, id: usize) -> ParseResult<auth::Tag> {
+    fn get_authenticator(arr: &[Value], id: usize) -> ParseResult<auth::Tag> {
         if arr.len() < 1 {
             return not_well_formed!("Payload array has only {} elements, 1 needed", arr.len());
         }
-        let authenticatorlist = match arr.get(0).unwrap().clone() {
+        let authenticatorlist = match arr[0].clone() {
             Value::Array(arr) => arr,
             _ => {
                 return not_well_formed!("Payload secretbox field[0] is not of type array");
@@ -288,7 +287,7 @@ impl Decrypter10 {
                 id
             );
         }
-        let authenticator_ = match authenticatorlist.get(id).unwrap().clone() {
+        let authenticator_ = match authenticatorlist[id].clone() {
             Value::Binary(bin) => bin,
             _ => return not_well_formed!("Payload authenticator is not of type binary"),
         };

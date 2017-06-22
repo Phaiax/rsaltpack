@@ -205,7 +205,7 @@ impl Dearmored {
 /// It returns a view into the inner encoded data of the first saltpack block.
 /// Also returns the information contained in the markers: vendor and messagetype
 /// Third return parameter is the position of the saltpack within `input`, including markers.
-fn find_first_saltpack<'a>(input : &'a mut [u8]) -> Option<(&'a mut [u8], ArmorInfo, Range<usize>)> {
+fn find_first_saltpack(input : &mut [u8]) -> Option<(&mut [u8], ArmorInfo, Range<usize>)> {
 
     // find first begin marker
     let re : Regex = Regex::new(r"BEGIN([a-zA-Z0-9]+)?SALTPACK(ENCRYPTEDMESSAGE|SIGNEDMESSAGE|DETACHEDSIGNATURE)\.").unwrap();

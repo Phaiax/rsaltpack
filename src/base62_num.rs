@@ -31,7 +31,7 @@ fn dealphabet(i : u8) -> u8 {
 }
 
 /// How many chars will be used for partially filled blocks?
-/// For 11 bytes we need CHARBLOCKSIZE_BY_BYTEBLOCKSIZE[11]=15
+/// For 11 bytes we need `CHARBLOCKSIZE_BY_BYTEBLOCKSIZE[11]=15`
 /// charcters in base62.
 const CHARBLOCKSIZE_BY_BYTEBLOCKSIZE : &[usize] = &[
     0, // 0 bytes
@@ -78,7 +78,7 @@ use self::CharblockSize::{Valid, Invalid};
 
 /// How many bytes were encoded with a partially filled char group (<43 chars)?
 /// A group of 15 characters must be decoded into
-/// BYTEBLOCKSIZE_BY_CHARBLOCKSIZE[15]=11 bytes.
+/// `BYTEBLOCKSIZE_BY_CHARBLOCKSIZE[15]=11` bytes.
 /// Not all char block sizes are valid, for example a group of 4 characters
 /// is invalid and should return an error.
 const BYTEBLOCKSIZE_BY_CHARBLOCKSIZE : &[(usize, CharblockSize)] = &[
@@ -201,7 +201,7 @@ pub fn decode_base62_block(base62 : &[u8], mut out_buffer : &mut[u8]) -> Result<
 
     assert!(out_buffer.len() >= needed_output_len);
 
-    let i = BigUint::from_radix_be(&base62, 62).unwrap();
+    let i = BigUint::from_radix_be(base62, 62).unwrap();
     let as_bytes = i.to_bytes_be();
 
     let mut missing = needed_output_len - as_bytes.len();
@@ -217,8 +217,8 @@ pub fn decode_base62_block(base62 : &[u8], mut out_buffer : &mut[u8]) -> Result<
 }
 
 /// Decodes stripped (only ascii, no whitespace) base62 coded data into its raw representation
-/// Reuses the ascii_input as buffer, that means the data is unusable afterwards.
-pub fn decode_base62<'a>(ascii_input : &mut [u8]) -> Result<Vec<u8>> {
+/// Reuses the `ascii_input` argument as buffer, that means the data is unusable afterwards.
+pub fn decode_base62(ascii_input : &mut [u8]) -> Result<Vec<u8>> {
     // base62 efficiency is 75%, so we can assume maximum raw data length.
     // (+rounding +last non full block needs still place of a full block (max 32))
     let max_output_size = ascii_input.len() * 3 / 4 + 1 + 32;
@@ -239,7 +239,7 @@ pub fn decode_base62<'a>(ascii_input : &mut [u8]) -> Result<Vec<u8>> {
 
     }
     raw_output.resize(raw_output_pointer, 0);
-    return Ok(raw_output);
+    Ok(raw_output)
 }
 
 

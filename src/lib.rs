@@ -1,7 +1,8 @@
 
 #![recursion_limit="128"]
 
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate serde_derive;
 
 extern crate serde;
 extern crate serde_bytes;
@@ -35,11 +36,11 @@ pub mod util;
 pub mod key;
 
 #[cfg(feature = "num-bigint")]
-#[path="base62_num.rs"]
+#[path = "base62_num.rs"]
 pub mod base62;
 
 #[cfg(feature = "fast_math")]
-#[path="base62_ramp.rs"]
+#[path = "base62_ramp.rs"]
 pub mod base62;
 
 pub use sodiumoxide::crypto::box_::Nonce as CBNonce;
@@ -56,7 +57,7 @@ use util::TryFrom;
 pub enum SaltpackMessageType {
     ENCRYPTEDMESSAGE,
     SIGNEDMESSAGE,
-    DETACHEDSIGNATURE
+    DETACHEDSIGNATURE,
 }
 
 impl SaltpackMessageType {
@@ -64,7 +65,7 @@ impl SaltpackMessageType {
         match *self {
             SaltpackMessageType::ENCRYPTEDMESSAGE => 0,
             SaltpackMessageType::SIGNEDMESSAGE => 1,
-            SaltpackMessageType::DETACHEDSIGNATURE => 2
+            SaltpackMessageType::DETACHEDSIGNATURE => 2,
         }
     }
 
@@ -72,7 +73,7 @@ impl SaltpackMessageType {
         match *self {
             SaltpackMessageType::ENCRYPTEDMESSAGE => "ENCRYPTED MESSAGE",
             SaltpackMessageType::SIGNEDMESSAGE => "SIGNED MESSAGE",
-            SaltpackMessageType::DETACHEDSIGNATURE => "DETACHED SIGNATURE"
+            SaltpackMessageType::DETACHEDSIGNATURE => "DETACHED SIGNATURE",
         }
     }
 
@@ -80,7 +81,7 @@ impl SaltpackMessageType {
         match *self {
             SaltpackMessageType::ENCRYPTEDMESSAGE => "ENCRYPTEDMESSAGE",
             SaltpackMessageType::SIGNEDMESSAGE => "SIGNEDMESSAGE",
-            SaltpackMessageType::DETACHEDSIGNATURE => "DETACHEDSIGNATURE"
+            SaltpackMessageType::DETACHEDSIGNATURE => "DETACHEDSIGNATURE",
         }
     }
 }
@@ -95,36 +96,36 @@ impl ToString for SaltpackMessageType {
 
 impl<'a> TryFrom<&'a str> for SaltpackMessageType {
     type Error = String;
-    fn try_from(ascii : &str) -> Result<Self, Self::Error> {
+    fn try_from(ascii: &str) -> Result<Self, Self::Error> {
         match ascii {
-            "ENCRYPTEDMESSAGE" => Ok(SaltpackMessageType::ENCRYPTEDMESSAGE),
-            "SIGNEDMESSAGE" => Ok(SaltpackMessageType::SIGNEDMESSAGE),
-            "DETACHEDSIGNATURE" => Ok(SaltpackMessageType::DETACHEDSIGNATURE),
+            "ENCRYPTEDMESSAGE" |
             "ENCRYPTED MESSAGE" => Ok(SaltpackMessageType::ENCRYPTEDMESSAGE),
-            "SIGNED MESSAGE" => Ok(SaltpackMessageType::SIGNEDMESSAGE),
+            "SIGNEDMESSAGE" | "SIGNED MESSAGE" => Ok(SaltpackMessageType::SIGNEDMESSAGE),
+            "DETACHEDSIGNATURE" |
             "DETACHED SIGNATURE" => Ok(SaltpackMessageType::DETACHEDSIGNATURE),
-            e @ _ => Err(format!("No valid saltpack type: {}", e).to_string())
+            e => Err(format!("No valid saltpack type: {}", e)),
         }
     }
 }
 
 impl<'a> TryFrom<&'a [u8]> for SaltpackMessageType {
     type Error = String;
-    fn try_from(ascii : &[u8]) -> Result<Self, Self::Error> {
+    fn try_from(ascii: &[u8]) -> Result<Self, Self::Error> {
         match ascii {
-            b"ENCRYPTEDMESSAGE" => Ok(SaltpackMessageType::ENCRYPTEDMESSAGE),
-            b"SIGNEDMESSAGE" => Ok(SaltpackMessageType::SIGNEDMESSAGE),
-            b"DETACHEDSIGNATURE" => Ok(SaltpackMessageType::DETACHEDSIGNATURE),
+            b"ENCRYPTEDMESSAGE" |
             b"ENCRYPTED MESSAGE" => Ok(SaltpackMessageType::ENCRYPTEDMESSAGE),
+            b"SIGNEDMESSAGE" |
             b"SIGNED MESSAGE" => Ok(SaltpackMessageType::SIGNEDMESSAGE),
+            b"DETACHEDSIGNATURE" |
             b"DETACHED SIGNATURE" => Ok(SaltpackMessageType::DETACHEDSIGNATURE),
-            e @ _ => Err(format!("No valid saltpack type: {}", String::from_utf8_lossy(e)).to_string())
+            e => Err(format!(
+                "No valid saltpack type: {}",
+                String::from_utf8_lossy(e)
+            )),
         }
     }
 }
 
 
 #[cfg(test)]
-mod tests {
-
-}
+mod tests {}

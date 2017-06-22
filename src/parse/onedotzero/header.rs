@@ -37,7 +37,7 @@ impl Parser10 {
         let mut reader: &[u8] = &nested_messagepack[..];
 
         // 3.1 retrieve array as `arr`
-        let arr: Vec<Value> = get_header_array(&mut reader, 2)?;
+        let arr: Vec<Value> = get_header_array(&mut reader)?;
 
         // 4 Sanity check the format name, version, and mode.
         check_header_format_and_version(&arr, 1, 0)?;
@@ -54,9 +54,11 @@ impl Parser10 {
             SaltpackMessageType::ENCRYPTEDMESSAGE => {
                 let eph_pub = read_ephemeral_public_key(&arr)?;
                 let sender_secretbox = read_sender_secretbox(&arr)?;
-                let recipients_arr = get_recipients_messagepackarray(&arr)?.unwrap_or(vec![]);
+                let recipients_arr = get_recipients_messagepackarray(&arr)?.unwrap_or_else(
+                    || vec![],
+                );
                 let mut parsed_recipients = Vec::with_capacity(recipients_arr.len());
-                for recipient in recipients_arr.iter() {
+                for recipient in &recipients_arr {
                     parsed_recipients.push(get_recipient(recipient)?);
                 }
                 Parser10::Encrypted(Encrypted10 {

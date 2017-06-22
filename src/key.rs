@@ -3,8 +3,8 @@
 //!
 //! [As with keybase](https://keybase.io/docs/api/1.0/kid), the encryption key does not equal the signing key.
 //!
-//!  * The signing key is an _EdDSA (Ed25519)_ key
-//!  * The encryption key is a _DH over Curve25519_ key
+//!  * The signing key is an `EdDSA (Ed25519)` key
+//!  * The encryption key is a `DH over Curve25519` key
 //!
 //! ## Usage
 //!
@@ -30,26 +30,26 @@
 //!
 //! During key generation in keybase, the signing key signs the encryption key, see
 //!
-//! * client/go/engine/kex2_provisionee.go : cacheKeys(), HandleDidCounterSign()
-//! * also see client/go/libkb/naclwrap.go : makeNaclSigningKeyPair(), makeNaclDHKeyPair()
-//!   - makeNaclDHKeyPair() uses NaCls box.GenerateKey()
-//!   - makeNaclSigningKeyPair() **uses ed25519.GenerateKey() but not NaCl!**
+//! * `client/go/engine/kex2_provisionee.go` : `cacheKeys()`, `HandleDidCounterSign()`
+//! * also see `client/go/libkb/naclwrap.go` : `makeNaclSigningKeyPair()`, `makeNaclDHKeyPair()`
+//!   - `makeNaclDHKeyPair()` uses `NaCls` `box.GenerateKey()`
+//!   - `makeNaclSigningKeyPair()` **uses `ed25519.GenerateKey()` but not `NaCl`!**
 //!
-//! Signing doesn't use [old NaCl signatures
-//! (crypto_sign_edwards25519sha512batch)](http://nacl.cr.yp.to/sign.html) but the
+//! Signing doesn't use [old `NaCl` signatures
+//! (`crypto_sign_edwards25519sha512batch`)](http://nacl.cr.yp.to/sign.html) but the
 //! [Ed25519](https://ed25519.cr.yp.to/).
-//! I guess the NaCl lib of keybase did not
+//! I guess the `NaCl` lib of keybase did not
 //! support Ed25519 at time of writing their code, so they used
 //! [github:agl/ed25519](https://github.com/agl/ed25519)
-//! instead of the NaCl primitives. But this has changed and
+//! instead of the `NaCl` primitives. But this has changed and
 //! [now](../../sodiumoxide/crypto/sign/index.html)
-//! we can simply use NaCl aka sodiumoxide.
+//! we can simply use `NaCl` aka `sodiumoxide`.
 //!
 //!
 //! # Security Note
 //!
-//! The library in the background, sodiumoxide, has implemented
-//! Drop for SecretKey. During `drop()`, the secret key data is wiped
+//! The library in the background, `sodiumoxide`, has implemented
+//! Drop for `SecretKey`. During `drop()`, the secret key data is wiped
 //! from memory.
 //!
 
@@ -166,15 +166,15 @@ impl SigningKeyPair {
 /// Parses hex formatted data.
 ///
 /// # Errors
-/// This function can return the KeyErrorKinds
+/// This function can return the `KeyErrorKinds`
 ///
 ///  - `Utf8Error`
 ///  - `ParseIntError`
 pub fn hex_to_bytes(hex : &str) -> KeyResult<Vec<u8>> {
     let mut bin = Vec::with_capacity(hex.len() / 2 + 1);
     for b in hex.as_bytes().chunks(2) {
-        let c = from_utf8(&b)?;
-        bin.push(u8::from_str_radix(&c, 16)?);
+        let c = from_utf8(b)?;
+        bin.push(u8::from_str_radix(c, 16)?);
     }
     Ok(bin)
 }
@@ -192,7 +192,7 @@ pub fn bytes_to_hex(bin : &[u8]) -> String {
 /// Checks the common traits of keybase formated keys and returns the type part.
 ///
 /// # Errors
-/// This function can return the KeyErrorKinds
+/// This function can return the `KeyErrorKinds`
 ///
 ///  - `KeybaseKeyNotAPublicKey`
 ///  - `KeybaseKeyUnsupportedVersion`
@@ -208,7 +208,7 @@ fn check_keybase_format(hex : &str) -> KeyResult<&str> {
     if hex.len() != 35*2 {
         bail!(KeyErrorKind::KeybaseKeyWrongLength(hex.len()));
     }
-    return Ok(&hex[2..4])
+    Ok(&hex[2..4])
 }
 
 /// The possible versions for formating keybase KIDs.
@@ -230,7 +230,7 @@ pub trait KeybaseKeyFormat : Sized {
     /// Parses a key given in keybases human readable KID style.
     ///
     /// # Errors
-    /// This function can return the KeyErrorKinds
+    /// This function can return the `KeyErrorKinds`
     ///
     ///  - `KeybaseKeyNotAPublicKey`
     ///  - `KeybaseKeyUnsupportedVersion`
@@ -244,7 +244,7 @@ pub trait KeybaseKeyFormat : Sized {
 
 impl KeybaseKeyFormat for EncryptionPublicKey {
     fn from_keybaseformat(keybase_formatted_key : &str) -> KeyResult<Self> {
-        if check_keybase_format(&keybase_formatted_key)? != "21" {
+        if check_keybase_format(keybase_formatted_key)? != "21" {
             bail!(KeyErrorKind::KeybaseKeyNotAnEncryptionKey);
         }
         let bytes = hex_to_bytes(&keybase_formatted_key[4..68])
@@ -267,7 +267,7 @@ impl KeybaseKeyFormat for EncryptionPublicKey {
 
 impl KeybaseKeyFormat for SigningPublicKey {
     fn from_keybaseformat(hex : &str) -> KeyResult<Self> {
-        if check_keybase_format(&hex)? != "20" {
+        if check_keybase_format(hex)? != "20" {
             bail!(KeyErrorKind::KeybaseKeyNotASigningKey);
         }
         let bytes = hex_to_bytes(&hex[4..68])
@@ -293,7 +293,7 @@ pub trait RawHexEncoding : Sized {
     /// Parses a hex string.
     ///
     /// # Errors
-    /// This function can return the KeyErrorKinds
+    /// This function can return the `KeyErrorKinds`
     ///
     ///  - `RawHexEncodedKeyWrongLength`
     ///  - `CouldNotDecodeHex`
@@ -333,7 +333,7 @@ impl RawHexEncoding for SigningPublicKey {
         }
         let bytes = hex_to_bytes(&hex[..])
             .chain_err(|| KeyErrorKind::CouldNotDecodeHex)?;
-        Self::from_slice(bytes.as_slice()).ok_or("Some error that should not happen.".into())
+        Self::from_slice(bytes.as_slice()).ok_or_else(|| "Some error that should not happen.".into())
     }
     fn into_rawhex(&self) -> String {
         bytes_to_hex(&self.0[..])

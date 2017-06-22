@@ -24,32 +24,30 @@ pub fn peel_outer_messagepack_encoding<R: Read>(mut raw: &mut R) -> Result<Vec<u
     match decode::read_value(&mut raw) {
         Ok(Value::Binary(bin)) => Ok(bin),
         Err(s) => not_well_formed!("Not a messagepack stream. {}", s),
-        e @ _ => not_well_formed!("No nested messagepack found. {:?}", e),
+        e => not_well_formed!("No nested messagepack found. {:?}", e),
     }
 }
 
-pub fn get_header_array(reader: &mut &[u8], min_len: usize) -> Result<Vec<Value>, ParseError> {
-    let arr = match decode::read_value(&mut *reader) {
-        Ok(Value::Array(arr)) => arr,
+pub fn get_header_array(reader: &mut &[u8]) -> Result<Vec<Value>, ParseError> {
+    match decode::read_value(&mut *reader) {
+        Ok(Value::Array(arr)) => Ok(arr),
         Err(s) => return not_well_formed!("Nested binary is not a messagepack stream. {}", s),
         _ => return not_well_formed!("Nested header messagepack is not of type array."),
-    };
-
-    if arr.len() < min_len {
-        return not_well_formed!("Header messagepack array to short. ({}<2)", arr.len());
     }
-
-    Ok(arr)
 }
 
 pub fn check_header_format_and_version(
-    arr: &Vec<Value>,
+    arr: &[Value],
     expected_version_major: u64,
     expected_version_minor: u64,
 ) -> Result<(), ParseError> {
 
+    if arr.len() < 2 {
+        return not_well_formed!("Header messagepack array to short. ({}<2)", arr.len());
+    }
+
     // 4.1 check first array element to be the string "saltpack"
-    let saltpack_str = match arr.get(0).unwrap().clone() {
+    let saltpack_str = match arr[0].clone() {
         Value::String(e) => {
             if e.is_str() {
                 e.into_str().unwrap()
@@ -70,7 +68,7 @@ pub fn check_header_format_and_version(
     }
 
     // 4.2.1 check second array element to be version number
-    let version_arr = match arr.get(1).unwrap().clone() {
+    let version_arr = match arr[1].clone() {
         Value::Array(arr) => arr,
         _ => return not_well_formed!("Header version field is not of type array"),
     };
@@ -79,12 +77,12 @@ pub fn check_header_format_and_version(
         return not_well_formed!("Header version field is not of type array[2]");
     }
 
-    let version_major = match version_arr.get(0).unwrap().clone() {
+    let version_major = match version_arr[0].clone() {
         Value::Integer(i) if i.is_u64() => i.as_u64().unwrap(),
         _ => return not_well_formed!("Header version field[0] is not of type integer"),
     };
 
-    let version_minor = match version_arr.get(1).unwrap().clone() {
+    let version_minor = match version_arr[1].clone() {
         Value::Integer(i) if i.is_u64() => i.as_u64().unwrap(),
         _ => return not_well_formed!("Header version field[1] is not of type integer"),
     };
@@ -100,7 +98,7 @@ pub fn check_header_format_and_version(
     Ok(())
 }
 
-pub fn check_header_len(arr: &Vec<Value>, min_len: usize) -> Result<(), ParseError> {
+pub fn check_header_len(arr: &[Value], min_len: usize) -> Result<(), ParseError> {
     if arr.len() < min_len {
         return not_well_formed!(
             "Header messagepack array to short. ({}<{})",
@@ -111,8 +109,8 @@ pub fn check_header_len(arr: &Vec<Value>, min_len: usize) -> Result<(), ParseErr
     Ok(())
 }
 
-pub fn check_mode(arr: &Vec<Value>) -> Result<SaltpackMessageType, ParseError> {
-    match arr.get(2).unwrap().clone() {
+pub fn check_mode(arr: &[Value]) -> Result<SaltpackMessageType, ParseError> {
+    match arr[2].clone() {
         Value::Integer(i) if i.is_u64() && i.as_u64().unwrap() == 0 => Ok(
             SaltpackMessageType::ENCRYPTEDMESSAGE,
         ),
@@ -131,8 +129,8 @@ pub fn check_mode(arr: &Vec<Value>) -> Result<SaltpackMessageType, ParseError> {
 
 
 
-pub fn read_ephemeral_public_key(arr: &Vec<Value>) -> Result<EncryptionPublicKey, ParseError> {
-    let eph_pub = match arr.get(3).unwrap().clone() {
+pub fn read_ephemeral_public_key(arr: &[Value]) -> Result<EncryptionPublicKey, ParseError> {
+    let eph_pub = match arr[3].clone() {
         Value::Binary(bin) => bin,
         _ => {
             return not_well_formed!("Header ephemeral public key field[3] is not of type binary");
@@ -152,18 +150,18 @@ pub fn read_ephemeral_public_key(arr: &Vec<Value>) -> Result<EncryptionPublicKey
     Ok(eph_pub_.unwrap())
 }
 
-pub fn read_sender_secretbox(arr: &Vec<Value>) -> Result<Vec<u8>, ParseError> {
-    match arr.get(4).unwrap().clone() {
+pub fn read_sender_secretbox(arr: &[Value]) -> Result<Vec<u8>, ParseError> {
+    match arr[4].clone() {
         Value::Binary(bin) => Ok(bin),
         _ => not_well_formed!("Header sender secretbox field[4] is not of type binary"),
     }
 }
 
-pub fn get_recipients_messagepackarray(arr: &Vec<Value>) -> Result<Option<Vec<Value>>, ParseError> {
+pub fn get_recipients_messagepackarray(arr: &[Value]) -> Result<Option<Vec<Value>>, ParseError> {
     let has_recipients = arr.len() >= 6;
 
     if has_recipients {
-        match arr.get(5).unwrap().clone() {
+        match arr[5].clone() {
             Value::Array(arr) => Ok(Some(arr)),
             _ => return not_well_formed!("Header recipient field is not of type array"),
         }
@@ -185,7 +183,7 @@ pub fn get_recipient(recipient: &Value) -> Result<Recipient, ParseError> {
         );
     }
 
-    let recipient_pub_key = match recipient.get(0).unwrap().clone() {
+    let recipient_pub_key = match recipient[0].clone() {
         Value::Binary(bin) => bin,
         _ => return not_well_formed!("Header recipient public key is not of type binary."),
     };
@@ -201,7 +199,7 @@ pub fn get_recipient(recipient: &Value) -> Result<Recipient, ParseError> {
 
     }
 
-    let payloadkey_cryptobox = match recipient.get(1).unwrap().clone() {
+    let payloadkey_cryptobox = match recipient[1].clone() {
         Value::Binary(bin) => bin,
         _ => return not_well_formed!("Header payload crypto box is not of type binary."),
     };

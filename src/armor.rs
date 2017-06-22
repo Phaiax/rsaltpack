@@ -8,11 +8,11 @@
 //! Do not use anything of this module. Instead use the [armor() method of
 //! struct Saltpack](../encrypt/struct.Saltpack.html#method.armor).
 //!
-//! You may want to use the method [valid_vendor()](fn.valid_vendor.html).
+//! You may want to use the method [`valid_vendor()`](fn.valid_vendor.html).
 //!
 //! ## You probably do not want to use this directly:
 //!
-//! Use [ArmoringStream](struct.ArmoringStream.html) as a streaming interface.
+//! Use [`ArmoringStream`](struct.ArmoringStream.html) as a streaming interface.
 //!
 //! Use the funciton [armor()](fn.armor.html) to armor a the binary data
 //! at once. Header and footer will be written immediatly.
@@ -27,7 +27,7 @@ use base62::b32bytes_to_base62_formatted;
 pub use ::SaltpackMessageType;
 use errors::*;
 
-/// This function does the same as [ArmoringStream](struct.ArmoringStream.html),
+/// This function does the same as [`ArmoringStream`](struct.ArmoringStream.html),
 /// but in one rush.
 ///
 /// It will convert binary input into the base62 armored version including
@@ -207,6 +207,7 @@ impl ArmoringStream {
         };
     }
 
+    #[cfg_attr(feature = "cargo-clippy", allow(collapsible_if))]
     // see put_header for explanation of the `&mut &mut`
     fn put_data(&mut self,
                 binary_in : &mut &[u8],
@@ -225,7 +226,7 @@ impl ArmoringStream {
                                            ref mut buflen,
                                            ref mut in_buffer } = self.state {
 
-            while armored_out.len() > 0 { // has place to write
+            while !armored_out.is_empty() { // has place to write
 
                 // first write remaining data from `out_buffer` if needed
                 if *bufpos != *buflen {
@@ -321,14 +322,14 @@ impl ArmoringStream {
                         };
                         binary_in.consume(binary_in.len());
 
-                    } else if binary_in.len() > 0 && last_bytes { // last non full block
+                    } else if !binary_in.is_empty() && last_bytes { // last non full block
                         *buflen = b32bytes_to_base62_formatted(&binary_in[..],
                                                          &mut out_buffer[..],
                                                          &mut *space_in,
                                                          &mut *newline_in);
                         binary_in.consume(binary_in.len()); // finish
                         *bufpos = 0;
-                    } else if binary_in.len() == 0 && last_bytes {
+                    } else if binary_in.is_empty() && last_bytes {
                         next = true;
                         break;
                     } else {

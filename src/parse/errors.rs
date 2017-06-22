@@ -1,12 +1,18 @@
 
 
 macro_rules! not_well_formed {
-    ( $( $param:expr ),* ) => {
+    ( $param:expr ) => (
+        {
+            let msg : ParseError = $param.into();
+            Err(msg).chain_err(|| ParseErrorKind::NotWellFormed)
+        }
+    );
+    ( $( $param:expr ),* ) => (
         {
             let msg : ParseError = format!($( $param, )*).into();
             Err(msg).chain_err(|| ParseErrorKind::NotWellFormed)
         }
-    };
+    )
 }
 
 error_chain!{
