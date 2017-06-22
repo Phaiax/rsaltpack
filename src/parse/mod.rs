@@ -14,7 +14,7 @@
 //! Currently only the encryption mode is supported.
 //!
 //! - When `is_mode_encryption()` returns true, you can start decrypting. By calling `verify()`
-//! with the private key of the receiver, you get a `SaltpackDecrypter` that does the decryption.
+//! with the private key of the receiver, you get a `Decrypter` that does the decryption.
 //! Call `read_payload()` and you'll get a `Vec<Vec<u8>>` out of performance reasons.
 //!
 //! ## Notes
@@ -42,13 +42,16 @@
 //! // Parse
 //! use rsaltpack::parse;
 //! let mut read_email = &email[..];
-//! let mut header = parse::SaltpackHeader::read_header(&mut read_email).unwrap();
-//! if header.is_mode_encryption() {
-//!     // recipient knows its secret key
-//!     let mut decryptor = header.verify(&recipient.s).unwrap();
-//!     let data_2 = decryptor.read_payload(&mut read_email)
-//!                           .map(parse::concat).unwrap();
-//!     assert_eq!(&data[..], &data_2[..]);
+//! let header = parse::Parser::read_header(&mut read_email).unwrap();
+//! match header {
+//!     parse::Parser::Encrypted(mut e) => {
+//!         // recipient knows its secret key
+//!         let mut decryptor = e.verify(&recipient.s).unwrap();
+//!         let data_2 = decryptor.read_payload(&mut read_email)
+//!                               .map(parse::concat).unwrap();
+//!         assert_eq!(&data[..], &data_2[..]);
+//!     },
+//!     _ => { panic!("Expected encrypted saltpack."); }
 //! }
 //! ```
 //!
@@ -58,8 +61,8 @@
 //!
 //! As a user of the library, that wants to support all versions, you should use the enums from
 //! this module that do not have a version postfix. These enums relay the actual work to the
-//! implementation that can read the received saltpack data. For example the `SaltpackDecrypter`
-//! uses the functionality implemented in the `SaltpackDecrypter10` if it encounters a saltpack in
+//! implementation that can read the received saltpack data. For example the `Decrypter`
+//! uses the functionality implemented in the `Decrypter10` if it encounters a saltpack in
 //! version 1.0. The specialised versions may offer additional methods that may not be compatible
 //! with future versions of saltpack. You can use them, but you will have to `match` to support
 //! all currently implemented versions.
@@ -77,9 +80,9 @@ use key::{EncryptionSecretKey};
 use parse::errors::*;
 
 pub use self::common::concat;
-pub use self::onedotzero::SaltpackHeader10;
-pub use self::onedotzero::SaltpackDecrypter10;
-pub use self::onedotzero::SaltpackEncryptionHeader10;
+pub use self::onedotzero::Parser10;
+pub use self::onedotzero::Decrypter10;
+pub use self::onedotzero::Encrypted10;
 
 use self::common::header::peel_outer_messagepack_encoding;
 
@@ -96,14 +99,27 @@ use self::common::header::peel_outer_messagepack_encoding;
 ///     header.verify(&recipient_priv_key)
 /// ```
 ///
-pub enum SaltpackHeader {
-    Version10(SaltpackHeader10),
+pub enum Parser {
+    Encrypted(Encrypted),
+    Signed(Signed),
 }
 
+pub enum Encrypted {
+    Version10(Encrypted10)
+}
 
-impl SaltpackHeader {
+/// Interface for decrypting (mode=encryption, version=all)
+pub enum Decrypter {
+    Version10(Decrypter10),
+}
+
+pub enum Signed {
+
+}
+
+impl Parser {
     /// API Entry point for parsing/decrypting saltpacks.
-    pub fn read_header<R : Read>(mut raw: &mut R) -> Result<SaltpackHeader, ParseError> {
+    pub fn read_header<R : Read>(mut raw: &mut R) -> Result<Parser, ParseError> {
 
         // The `Read` stream can only be read once, so we peel the outer message pack here and not
         // in the version specific parsers like `SaltpackHeader10`. The bytes are copied into an
@@ -111,7 +127,7 @@ impl SaltpackHeader {
 
         // 1 Deserialize the header bytes from the message stream using MessagePack. (What's on
         // the wire is twice-encoded, so the result of unpacking will be once-encoded bytes.)
-        let nested_messagepack : Vec<u8> = try!(peel_outer_messagepack_encoding(&mut raw));
+        let nested_messagepack : Vec<u8> = peel_outer_messagepack_encoding(&mut raw)?;
 
 
         // Find out version of saltpack. First try `try_version`. If it fails, use the version
@@ -124,8 +140,8 @@ impl SaltpackHeader {
         loop {
             // Try.
             let header = match try_version {
-                (1, _) => SaltpackHeader10::parse_nested_messagepack(nested_messagepack.as_slice())
-                          .map(|h| SaltpackHeader::Version10(h) ),
+                (1, _) => Parser10::parse_nested_messagepack(nested_messagepack.as_slice())
+                          .map(|h| h.into() ),
 
                 (a, b) => Err(ParseErrorKind::UnsupportedSaltpackVersion(a, b).into()) ,
             };
@@ -146,47 +162,56 @@ impl SaltpackHeader {
     }
 
     /// Returns true if `mode == SaltpackMessageType::ENCRYPTEDMESSAGE`.
-    ///
-    /// Call `verify()` if this function returns true.
-    pub fn is_mode_encryption(&self) -> bool {
-        match self {
-            &SaltpackHeader::Version10(SaltpackHeader10::Encryption(..)) => true,
-            //_ => false,
-        }
-    }
-
-    /// Verifys header for an encrypted saltpack.
-    /// Panics if `!self.is_mode_encryption()`. TODO bad API
-    pub fn verify(&mut self, recipient_priv_key : &EncryptionSecretKey) -> Result<SaltpackDecrypter, ParseError> {
+    pub fn try_encrypted(&mut self) -> Option<&mut Encrypted> {
         match *self {
-            SaltpackHeader::Version10(SaltpackHeader10::Encryption(ref mut e))
-                => e.verify(&recipient_priv_key)
-                    .map(|d| SaltpackDecrypter::Version10(d)),
-            //_ => panic!("Called verify() but !is_mode_encryption()"),
+            Parser::Encrypted(ref mut e) => Some(e),
+            _ => None,
         }
     }
 
 }
 
-
-/// Future proof interface for decrypting (mode=encryption, version=all)
-pub enum SaltpackDecrypter {
-    Version10(SaltpackDecrypter10),
+impl From<Parser10> for Parser {
+    fn from(src: Parser10) -> Self {
+        match src {
+            Parser10::Encrypted(enc) => Parser::Encrypted(enc.into())
+        }
+    }
 }
 
-impl SaltpackDecrypter {
+impl Encrypted {
+    /// Verifys header for an encrypted saltpack.
+    pub fn verify(&mut self, recipient_priv_key : &EncryptionSecretKey) -> Result<Decrypter, ParseError> {
+        match *self {
+            Encrypted::Version10(ref mut e)
+                => e.verify(&recipient_priv_key).map(Into::into),
+        }
+    }
+}
+
+impl From<Encrypted10> for Encrypted {
+    fn from(src: Encrypted10) -> Self {
+        Encrypted::Version10(src)
+    }
+}
+
+impl Decrypter {
     /// Decrypt all payload packets at once. The output must be concated to
     /// retrieve the original input. You can do this via
     /// `.map(parse::concat)`.
     pub fn read_payload<R>(&mut self, mut raw: &mut R) -> Result<Vec<Vec<u8>>, ParseError>
       where R : Read {
         match *self {
-            SaltpackDecrypter::Version10(ref mut d) => d.read_payload(&mut raw)
+            Decrypter::Version10(ref mut d) => d.read_payload(&mut raw)
         }
     }
-
 }
 
+impl From<Decrypter10> for Decrypter {
+    fn from(src: Decrypter10) -> Self {
+        Decrypter::Version10(src)
+    }
+}
 
 
 
@@ -206,7 +231,7 @@ mod tests {
         let raw_saltpacks = dearmor(Stripped::from_utf8(&ARMORED_2), 1).unwrap();
         let pack1 = raw_saltpacks.get(0).unwrap();
         let mut reader : &[u8] = pack1.raw_bytes.as_slice();
-        let header = SaltpackHeader10::read_header(&mut reader).unwrap();
+        let header = Parser10::read_header(&mut reader).unwrap();
         // assert_eq!(header.mode, SaltpackMessageType::ENCRYPTEDMESSAGE);
         // assert_eq!(header.recipients.len(), 3);
         // if let SaltpackHeader10::Encryption(enc_header) = header {

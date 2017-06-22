@@ -11,18 +11,25 @@ fn main() {
     // Compose
     use rsaltpack::encrypt;
     let email = encrypt::encrypt_to_binary(
-                    Some(&sender),
-                    &vec![recipient.p], // sender only knows public key
-                    data);
+        Some(&sender),
+        &vec![recipient.p], // sender only knows public key
+        data,
+    );
 
     // Retrieve
     use rsaltpack::parse;
     let mut read_email = &email[..];
-    let mut header = parse::SaltpackHeader::read_header(&mut read_email).unwrap();
-    if header.is_mode_encryption() {
-        let mut decryptor = header.verify(&recipient.s).unwrap(); // recipient knows its secret key
-        let data_2 = decryptor.read_payload(&mut read_email).map(parse::concat).unwrap();
-        assert_eq!(&data[..], &data_2[..]);
+    let mut header = parse::Parser::read_header(&mut read_email).unwrap();
+    match header {
+        parse::Parser::Encrypted(ref mut e) => {
+            let mut decryptor = e.verify(&recipient.s).unwrap(); // recipient knows its secret key
+            let data_2 = decryptor
+                .read_payload(&mut read_email)
+                .map(parse::concat)
+                .unwrap();
+            assert_eq!(&data[..], &data_2[..]);
+        }
+        _ => {}
     }
 
 

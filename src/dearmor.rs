@@ -117,7 +117,7 @@ pub fn dearmor(text : Stripped, max : usize) -> Result<Vec<Dearmored>> {
             range.end += consumed_bytes;
             saltpacks.push( Dearmored {
                 meta : meta,
-                raw_bytes : try!(decode_base62(&mut encoded_data)),
+                raw_bytes : decode_base62(&mut encoded_data)?,
                 range_within_stripped : range.clone(),
             } );
         } else {

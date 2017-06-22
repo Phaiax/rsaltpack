@@ -20,7 +20,7 @@ use rmpv::Value;
 
 #[derive(Debug)]
 /// Information from saltpack header (mode=encryption, version=1.0)
-pub struct SaltpackEncryptionHeader10 {
+pub struct Encrypted10 {
     pub(super) eph_pub: EncryptionPublicKey,
     pub(super) sender_secretbox: Vec<u8>,
     pub(super) recipients: Vec<Recipient>,
@@ -29,14 +29,11 @@ pub struct SaltpackEncryptionHeader10 {
 
 
 
-impl SaltpackEncryptionHeader10 {
+impl Encrypted10 {
     /// Searches the recipients for the current recipient.
     /// If found, decrypt the sender public key.
     /// Prepare for decrypting of payload packets.
-    pub fn verify(
-        &self,
-        recipient_priv_key: &EncryptionSecretKey,
-    ) -> ParseResult<SaltpackDecrypter10> {
+    pub fn verify(&self, recipient_priv_key: &EncryptionSecretKey) -> ParseResult<Decrypter10> {
         // 5 Precompute the ephemeral shared secret using crypto_box_beforenm
         // with the ephemeral public key and the recipient's private key.
         let precomputed_key = box_::precompute(&self.eph_pub, &recipient_priv_key);
@@ -127,7 +124,7 @@ impl SaltpackEncryptionHeader10 {
 
 
 
-        Ok(SaltpackDecrypter10 {
+        Ok(Decrypter10 {
             sender: if sender_pub_key != self.eph_pub {
                 Some(sender_pub_key)
             } else {
@@ -158,11 +155,11 @@ impl SaltpackEncryptionHeader10 {
 /// If it is not empty, an attacker may have truncated the data.
 /// See source code of [`read_payload()`] for an example.
 ///
-/// [`verify()`]: struct.SaltpackEncryptionHeader10.html#method.verify
-/// [`read_payload()`]: struct.SaltpackDecrypter10.html#method.read_payload
-/// [`read_next_payload_packet()`]: struct.SaltpackDecrypter10.html#method.read_next_payload_packet
+/// [`verify()`]: struct.EncryptionHeaderV1dot0.html#method.verify
+/// [`read_payload()`]: struct.Decrypter10.html#method.read_payload
+/// [`read_next_payload_packet()`]: struct.Decrypter10.html#method.read_next_payload_packet
 /// [`concat()`]: fn.concat.html
-pub struct SaltpackDecrypter10 {
+pub struct Decrypter10 {
     pub sender: Option<EncryptionPublicKey>,
     header_hash: Digest,
     mac: auth::Key,
@@ -173,7 +170,7 @@ pub struct SaltpackDecrypter10 {
 
 
 
-impl SaltpackDecrypter10 {
+impl Decrypter10 {
     /// Decrypt all payload packets at once. The output must be concated to
     /// retrieve the original input. You can do this via
     /// `.map(parse::concat)`.
@@ -202,18 +199,15 @@ impl SaltpackDecrypter10 {
         }
     }
 
-    /// See [`SaltpackDecrypter10`] for more information.
-    /// [`SaltpackDecrypter10`]: struct.SaltpackDecrypter10.html
+    /// See [`Decrypter10`] for more information.
+    /// [`Decrypter10`]: struct.Decrypter10.html
     pub fn read_next_payload_packet<R>(&mut self, mut raw: &mut R) -> ParseResult<Vec<u8>>
     where
         R: Read,
     {
-        let arr = try!(SaltpackDecrypter10::get_next_array(&mut raw));
-        let payload_secretbox = try!(SaltpackDecrypter10::get_payload_secretbox(&arr));
-        let authenticator = try!(SaltpackDecrypter10::get_authenticator(
-            &arr,
-            self.recipient_index,
-        ));
+        let arr = Decrypter10::get_next_array(&mut raw)?;
+        let payload_secretbox = Decrypter10::get_payload_secretbox(&arr)?;
+        let authenticator = Decrypter10::get_authenticator(&arr, self.recipient_index)?;
 
         // 0 Make nonce for payload secretbox
         let nonce = util::make_payloadpacket_nonce(self.packet_number);

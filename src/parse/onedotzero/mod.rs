@@ -1,7 +1,7 @@
 
 mod header;
-pub use self::header::SaltpackHeader10;
+pub use self::header::Parser10;
 
 mod encryption;
-pub use self::encryption::SaltpackEncryptionHeader10;
-pub use self::encryption::SaltpackDecrypter10;
+pub use self::encryption::Encrypted10;
+pub use self::encryption::Decrypter10;

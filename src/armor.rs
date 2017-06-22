@@ -38,7 +38,7 @@ pub fn armor(binary_in : &mut [u8],
              vendorstring: &str,
              messagetype: SaltpackMessageType)
              -> Result<String> {
-    let mut armoring_stream = try!(ArmoringStream::new(vendorstring, messagetype));
+    let mut armoring_stream = ArmoringStream::new(vendorstring, messagetype)?;
     let mut out = vec![0u8; armoring_stream.predict_armored_len(binary_in.len())];
     let (_, written) = armoring_stream.armor(&binary_in[..], true, &mut out[..]).unwrap();
     out.resize(written, 0);
@@ -127,7 +127,7 @@ impl ArmoringStream {
     pub fn new(vendorstring: &str,
                messagetype: SaltpackMessageType)
                -> Result<ArmoringStream> {
-        try!(valid_vendor(vendorstring));
+        valid_vendor(vendorstring)?;
         Ok(ArmoringStream{
             state : ArmoringStreamState::AtHeader{
                 pos_within_header : 0,
@@ -395,7 +395,7 @@ impl ArmoringStream {
 
 impl fmt::Debug for ArmoringStream {
     fn fmt(&self, mut f : &mut fmt::Formatter) -> fmt::Result {
-        try!(self.state.fmt(&mut f));
+        self.state.fmt(&mut f)?;
         Ok(())
     }
 }

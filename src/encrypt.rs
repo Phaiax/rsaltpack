@@ -174,7 +174,7 @@ pub fn encrypt_and_armor(sender : Option<&EncryptionKeyPair>,
     let mut saltpack = Saltpack::encrypt(sender, recipients);
     saltpack.write_all(payload).unwrap();
     saltpack.flush().unwrap();
-    let encrypted = try!(saltpack.armor(&vendor)).to_string();
+    let encrypted = saltpack.armor(&vendor)?.to_string();
     Ok(encrypted)
 }
 
@@ -485,7 +485,7 @@ impl Read for Saltpack {
                     let br = self.bytes_read_from_first_output_buffer_element;
                     let front = self.output_buffer.front().unwrap();
                     // This `write()` will modify the range `buffer` is pointing to
-                    try!(buffer.write(&front[br..]))
+                    buffer.write(&front[br..])?
                 };
                 bytes_read += written;
                 self.bytes_read_from_first_output_buffer_element += written;
@@ -573,7 +573,7 @@ impl ArmoredSaltpack {
     pub fn new(saltpack : Saltpack, vendor : &str) -> Result<ArmoredSaltpack> {
         Ok(ArmoredSaltpack {
             saltpack : saltpack,
-            armoring_stream : try!(armor::ArmoringStream::new(vendor, SaltpackMessageType::ENCRYPTEDMESSAGE)),
+            armoring_stream : armor::ArmoringStream::new(vendor, SaltpackMessageType::ENCRYPTEDMESSAGE)?,
         })
     }
 
