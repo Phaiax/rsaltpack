@@ -10,13 +10,15 @@ extern crate rmp; // message pack
 extern crate rmp_serde;
 extern crate rmpv;
 
+extern crate base64;
+
 #[cfg(feature = "fast_math")]
 extern crate ramp;
 extern crate byteorder;
 //extern crate alloc;
 extern crate regex;
 extern crate sodiumoxide;
-//extern crate test;
+extern crate ring_pwhash;
 
 #[cfg(feature = "num-bigint")]
 extern crate num_bigint;
@@ -26,7 +28,7 @@ extern crate num_traits;
 #[macro_use]
 extern crate error_chain;
 
-
+#[macro_use]
 pub mod errors;
 pub mod encrypt;
 pub mod parse;

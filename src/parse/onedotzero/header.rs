@@ -73,4 +73,11 @@ impl Parser10 {
 
         Ok(parsed_header)
     }
+
+    /// Returns Some(encryption_parser) if the parsed saltpack is in encryption mode.
+    pub fn try_encrypted(&mut self) -> Option<&mut Encrypted10> {
+        match *self {
+            Parser10::Encrypted(ref mut e) => Some(e),
+        }
+    }
 }

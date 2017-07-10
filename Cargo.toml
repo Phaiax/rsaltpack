@@ -9,6 +9,7 @@ default = ["num-bigint"]
 fast_math = ["ramp"]
 
 [dependencies]
+base64 = "*"
 serde = "1.0"
 serde_derive = "1.0"
 serde_bytes = "0.10"
@@ -23,3 +24,4 @@ byteorder = "^0.5"
 regex="*"
 #regex_macros = "^0.1"
 sodiumoxide = "0.0.10"
+ring-pwhash = "*"

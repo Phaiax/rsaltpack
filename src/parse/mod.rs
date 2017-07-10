@@ -75,7 +75,7 @@ mod twodotzero;
 
 use std::io::Read;
 
-use key::{EncryptionSecretKey};
+use key::EncryptionSecretKey;
 
 use parse::errors::*;
 
@@ -105,7 +105,7 @@ pub enum Parser {
 }
 
 pub enum Encrypted {
-    Version10(Encrypted10)
+    Version10(Encrypted10),
 }
 
 /// Interface for decrypting (mode=encryption, version=all)
@@ -119,7 +119,7 @@ pub enum Signed {
 
 impl Parser {
     /// API Entry point for parsing/decrypting saltpacks.
-    pub fn read_header<R : Read>(mut raw: &mut R) -> Result<Parser, ParseError> {
+    pub fn read_header<R: Read>(mut raw: &mut R) -> Result<Parser, ParseError> {
 
         // The `Read` stream can only be read once, so we peel the outer message pack here and not
         // in the version specific parsers like `SaltpackHeader10`. The bytes are copied into an
@@ -127,7 +127,7 @@ impl Parser {
 
         // 1 Deserialize the header bytes from the message stream using MessagePack. (What's on
         // the wire is twice-encoded, so the result of unpacking will be once-encoded bytes.)
-        let nested_messagepack : Vec<u8> = peel_outer_messagepack_encoding(&mut raw)?;
+        let nested_messagepack: Vec<u8> = peel_outer_messagepack_encoding(&mut raw)?;
 
 
         // Find out version of saltpack. First try `try_version`. If it fails, use the version
@@ -140,10 +140,12 @@ impl Parser {
         loop {
             // Try.
             let header = match try_version {
-                (1, _) => Parser10::parse_nested_messagepack(nested_messagepack.as_slice())
-                          .map(|h| h.into() ),
+                (1, _) => {
+                    Parser10::parse_nested_messagepack(nested_messagepack.as_slice())
+                        .map(|h| h.into())
+                }
 
-                (a, b) => Err(ParseErrorKind::UnsupportedSaltpackVersion(a, b).into()) ,
+                (a, b) => Err(ParseErrorKind::UnsupportedSaltpackVersion(a, b).into()),
             };
             tried.push(try_version);
 
@@ -154,8 +156,10 @@ impl Parser {
                     if (&tried[..]).contains(&try_version) {
                         bail!(ParseErrorKind::UnsupportedSaltpackVersion(a, b));
                     }
-                },
-                e => { return e; },
+                }
+                e => {
+                    return e;
+                }
             }
 
         }
@@ -168,23 +172,24 @@ impl Parser {
             _ => None,
         }
     }
-
 }
 
 impl From<Parser10> for Parser {
     fn from(src: Parser10) -> Self {
         match src {
-            Parser10::Encrypted(enc) => Parser::Encrypted(enc.into())
+            Parser10::Encrypted(enc) => Parser::Encrypted(enc.into()),
         }
     }
 }
 
 impl Encrypted {
     /// Verifys header for an encrypted saltpack.
-    pub fn verify(&mut self, recipient_priv_key : &EncryptionSecretKey) -> Result<Decrypter, ParseError> {
+    pub fn verify(
+        &mut self,
+        recipient_priv_key: &EncryptionSecretKey,
+    ) -> Result<Decrypter, ParseError> {
         match *self {
-            Encrypted::Version10(ref mut e)
-                => e.verify(recipient_priv_key).map(Into::into),
+            Encrypted::Version10(ref mut e) => e.verify(recipient_priv_key).map(Into::into),
         }
     }
 }
@@ -200,9 +205,11 @@ impl Decrypter {
     /// retrieve the original input. You can do this via
     /// `.map(parse::concat)`.
     pub fn read_payload<R>(&mut self, mut raw: &mut R) -> Result<Vec<Vec<u8>>, ParseError>
-      where R : Read {
+    where
+        R: Read,
+    {
         match *self {
-            Decrypter::Version10(ref mut d) => d.read_payload(&mut raw)
+            Decrypter::Version10(ref mut d) => d.read_payload(&mut raw),
         }
     }
 }
@@ -211,55 +218,4 @@ impl From<Decrypter10> for Decrypter {
     fn from(src: Decrypter10) -> Self {
         Decrypter::Version10(src)
     }
-}
-
-
-
-#[cfg(test)]
-mod tests {
-
-    static ARMORED_2 : &'static str = "BEGIN KEYBASE SALTPACK ENCRYPTED MESSAGE. kiOUtMhcc4NXXRb XMxIdgQyljueFUr j9Glci9VK9gs0FD SAI1ChjLXBNvLG9 KzKYjJpeQYdhPeE 132M0VyYiPVRKkc xfxsSUuTNvDtLV8 XJEZlLNM9AEMoJ4 4cQ9dhRpULgINBK CMjxIe0olHF05oC BFiS4JEd9YfzKfB kppV8R4RZeEoU2E StUW1n6563Nynco OAZjT8O8dy3wspR KRIYp2lGwO4jhxN 7Pr1ROg89nrQbTs jIe5kKk0OcNk2nr nFwpZ2T5FflPK6A OAfEWB1ff1o0dG7 3ZSD1GzzH3LbCgj IUg0xnpclpHi37r sXoVzt731JucYGh ihnM9jHK5hhiCmx hnnZ3SyXuW443wU WxTFOzeTJ37kNsG ZNIWxfKIu5rcL8Q PwFd2Sn4Azpcdmy qzlJMvKphjTdkEC EVg0JwaSwwMbhDl OuytEL90Qlf8g9O S8S6qY4Ssw80J5V Avqz3CiiCuSUWzr ry6HdhLWWpguBQi a74pdDYBlzbjsXM lLLKaF5t46nnfB0 7APzXL7wfvRHZVF kJH1SP9WVxULDH2 gocmmy8E2XHfHri nVZU27A3EQ0d0EY IrXpllP8BkCbIc1 GuQGRaAsYH4keTR FuH0h4RoJ6J6mYh TXRceNTDqYAtzm0 Fuop8MaJedh8Pzs HtXcxYsJgPvwqsh H6R3It9Atnpjh1U u0o0uNY0lhcTB4g GHNse3LigrLbMvd oq6UkokAowoWwy2 mk4QdKuWAXrTTSH viB7AMcs5HC96mG 4pTjaXRNBT7Zrs6 fc1GCa4lMJPzSWC XM2pIvu70NCHXYB 8xW11pz1Yy3K2Cw Wz. END KEYBASE SALTPACK ENCRYPTED MESSAGE.";
-
-    use super::*;
-    use dearmor::dearmor;
-    use dearmor::Stripped;
-    // use ::SaltpackMessageType;
-
-    #[test]
-    #[allow(unused_variables)]
-    fn test_v10() {
-        let raw_saltpacks = dearmor(Stripped::from_utf8(&ARMORED_2), 1).unwrap();
-        let pack1 = raw_saltpacks.get(0).unwrap();
-        let mut reader : &[u8] = pack1.raw_bytes.as_slice();
-        let header = Parser10::read_header(&mut reader).unwrap();
-        // assert_eq!(header.mode, SaltpackMessageType::ENCRYPTEDMESSAGE);
-        // assert_eq!(header.recipients.len(), 3);
-        // if let SaltpackHeader10::Encryption(enc_header) = header {
-        //     enc_header.verify()
-        // }
-
-    }
-
-    #[test]
-    fn test_real_keybase_msg() {
-
-    }
-
-    #[test]
-    fn concat_does_zeroing() {
-        let test_ptr;
-        {
-            let data1 = vec![1u8,2,3,4,5,6];
-            let data2 = vec![1  ,2,3,4,5,6];
-            test_ptr = data1.as_ptr();
-            let multi = vec![data1, data2];
-            assert_eq!(3, unsafe { *(test_ptr.offset(2)) });
-            let cat = concat(multi);
-            assert_eq!(*&cat[8], 3);
-            // drop everything
-        }
-        assert_eq!(0, unsafe { *(test_ptr.offset(2)) });
-        assert_eq!(0, unsafe { *(test_ptr.offset(4)) });
-    }
-
 }
